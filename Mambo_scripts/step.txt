@@ -1,0 +1,8 @@
+Terminal 1:
+cd Mambo_scripts
+python3 test_mocap_socket.py
+
+
+Terminal 2:
+python3 test_mambo_mocap.py
+python3 test_mamno_connection.py
