@@ -38,8 +38,7 @@ def main_phasespace():
     owl.streaming(1)
 
 
-
-
+###########################################
     # about socket
     HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
     PORT = 9000        # Port to listen on (non-privileged ports are > 1023)
@@ -59,7 +58,6 @@ def main_phasespace():
     print("waiting for a connection")
     connection, client_address = sock.accept()
     print("connection from", client_address)
-
 
 
     while owl.isOpen() and owl.property("initialized"):
