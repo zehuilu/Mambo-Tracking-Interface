@@ -25,14 +25,14 @@ def main_phasespace():
 
     # args: tracker_id, marker_id, a name for the marker, marker local coordinates
     # keep in mind your coordinate system, in this case we're using x-z as the ground plane
-    owl.assignMarker(tracker_id, 128, "128", "pos=-45.4582,-12.4145,53.2376")
-    owl.assignMarker(tracker_id, 129, "129", "pos=-2.6131,23.1609,8.7546")
+    owl.assignMarker(tracker_id, 128, "128", "pos=-45.0577,-13.9892,52.0873")
+    owl.assignMarker(tracker_id, 129, "129", "pos=-4.6958,20.2641,10.9212")
     #owl.assignMarker(tracker_id, 130, "130", "pos=42.2529,-17.7398,53.2606")
     #owl.assignMarker(tracker_id, 131, "131", "pos=-6.6991,-1.1539,28.1312")
-    owl.assignMarker(tracker_id, 132, "132", "pos=58.6446,-15.4166,-27.7832")
-    owl.assignMarker(tracker_id, 133, "133", "pos=1.4436,-0.9763,-13.8096")
-    owl.assignMarker(tracker_id, 134, "134", "pos=-35.8660,-17.3950,-36.6813")
-    owl.assignMarker(tracker_id, 135, "135", "pos=23.8660,23.0410,16.2822")
+    owl.assignMarker(tracker_id, 132, "132", "pos=57.7376,-17.0178,-25.6315")
+    owl.assignMarker(tracker_id, 133, "133", "pos=1.6101,-2.5444,-12.6364")
+    owl.assignMarker(tracker_id, 134, "134", "pos=-35.0395,-11.4603,-41.5566")
+    owl.assignMarker(tracker_id, 135, "135", "pos=23.1157,24.2598,17.0532")
 
     # once you hit this point, the program will connect with the receiver and the lights should turn on
     owl.streaming(1)
@@ -74,11 +74,11 @@ def main_phasespace():
                     if r.cond > 0:
                         #print(r.pose)
                         
-                        # position in phasespace frame
+                        # position in controller frame, rotation in phasespace
 
-                        #px = r.pose[0] # x in phasespace
-                        #py = r.pose[1] # y in phasespace
-                        #pz = r.pose[2] # z in phasespace
+                        #py = r.pose[0] # x in phasespace, y in controller
+                        #pz = r.pose[1] # y in phasespace, z in controller
+                        #px = r.pose[2] # z in phasespace, x in controller
                         #ori_w = r.pose[3]
                         #ori_x = r.pose[4]
                         #ori_y = r.pose[5]
@@ -87,9 +87,9 @@ def main_phasespace():
                         #data = np.array([px, py, pz, ori_w, ori_x, ori_y, ori_z], dtype=float)
 
                         # mm to m
-                        data = np.array([r.pose[0] / 1000.0, \
+                        data = np.array([r.pose[2] / 1000.0, \
+                            r.pose[0] / 1000.0, \
                             r.pose[1] / 1000.0, \
-                            r.pose[2] / 1000.0, \
                             r.pose[3], r.pose[4], r.pose[5], r.pose[6]], dtype=float)
 
                         msg = data.tostring()
