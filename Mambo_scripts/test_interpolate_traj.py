@@ -7,13 +7,13 @@ import generate_spline_peak_speed as gen_spline
 
 
 # generate a desired trajectory
-p_0 = np.array([[0.0], [0.5], [1.0]])
+p_0 = np.array([[0.0], [0.0], [0.6]])
 v_0 = np.array([[0.0], [0.0], [0.0]])
 a_0 = np.array([[0.0], [0.0], [0.0]])
-t_peak = 1.5
+t_peak = 0.5
 t_total = 3.0
 dt_traj = 0.10
-v_peak = np.array([[1.0], [1.0], [1.0]])
+v_peak = np.array([[0.0], [0.5], [0.0]])
 
 gen_class = gen_spline.generate_spline_by_peak_speed(p_0, v_0, a_0, v_peak, t_peak, t_total, dt_traj)
 T, traj_ref = gen_class.do_calculation()

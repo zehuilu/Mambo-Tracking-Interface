@@ -25,20 +25,21 @@ def main_phasespace():
 
     # args: tracker_id, marker_id, a name for the marker, marker local coordinates
     # keep in mind your coordinate system, in this case we're using x-z as the ground plane
-    owl.assignMarker(tracker_id, 128, "128", "pos=-45.0577,-13.9892,52.0873")
-    owl.assignMarker(tracker_id, 129, "129", "pos=-4.6958,20.2641,10.9212")
-    #owl.assignMarker(tracker_id, 130, "130", "pos=42.2529,-17.7398,53.2606")
-    #owl.assignMarker(tracker_id, 131, "131", "pos=-6.6991,-1.1539,28.1312")
-    owl.assignMarker(tracker_id, 132, "132", "pos=57.7376,-17.0178,-25.6315")
-    owl.assignMarker(tracker_id, 133, "133", "pos=1.6101,-2.5444,-12.6364")
-    owl.assignMarker(tracker_id, 134, "134", "pos=-35.0395,-11.4603,-41.5566")
-    owl.assignMarker(tracker_id, 135, "135", "pos=23.1157,24.2598,17.0532")
+    owl.assignMarker(tracker_id, 128, "128", "pos=-53.1304,-10.0298,40.5306")
+    owl.assignMarker(tracker_id, 129, "129", "pos=-10.1753,23.6635,-3.2948")
+    owl.assignMarker(tracker_id, 130, "130", "pos=42.2008,-11.9643,51.7040")
+    owl.assignMarker(tracker_id, 131, "131", "pos=-7.9056,-1.9095,26.1111")
+    owl.assignMarker(tracker_id, 132, "132", "pos=52.5650,-13.7188,-40.6436")
+    owl.assignMarker(tracker_id, 133, "133", "pos=0.0916,5.0685,-29.0841")
+    owl.assignMarker(tracker_id, 134, "134", "pos=-40.3587,-14.5233,-50.6817")
+    owl.assignMarker(tracker_id, 135, "135", "pos=16.7125,23.4146,5.3593")
 
     # once you hit this point, the program will connect with the receiver and the lights should turn on
     owl.streaming(1)
 
 
-###########################################
+
+
     # about socket
     HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
     PORT = 9000        # Port to listen on (non-privileged ports are > 1023)
@@ -60,6 +61,7 @@ def main_phasespace():
     print("connection from", client_address)
 
 
+
     while owl.isOpen() and owl.property("initialized"):
         event = owl.nextEvent(1000)
         if not event:
@@ -73,25 +75,19 @@ def main_phasespace():
                 for r in event.rigids:
                     if r.cond > 0:
                         #print(r.pose)
-                        
-                        # position in controller frame, rotation in phasespace
+			
+                        px = r.pose[0]
+                        py = r.pose[1]
+                        pz = r.pose[2]
+                        ori_w = r.pose[3]
+                        ori_x = r.pose[4]
+                        ori_y = r.pose[5]
+                        ori_z = r.pose[6]
 
-                        #py = r.pose[0] # x in phasespace, y in controller
-                        #pz = r.pose[1] # y in phasespace, z in controller
-                        #px = r.pose[2] # z in phasespace, x in controller
-                        #ori_w = r.pose[3]
-                        #ori_x = r.pose[4]
-                        #ori_y = r.pose[5]
-                        #ori_z = r.pose[6]
+                        quaternion = (ori_w, ori_x, ori_y, ori_z)
+                        yaw, pitch, roll = transforms3d.euler.quat2euler(quaternion, axes='syzx')
 
-                        #data = np.array([px, py, pz, ori_w, ori_x, ori_y, ori_z], dtype=float)
-
-                        # mm to m
-                        data = np.array([r.pose[2] / 1000.0, \
-                            r.pose[0] / 1000.0, \
-                            r.pose[1] / 1000.0, \
-                            r.pose[3], r.pose[4], r.pose[5], r.pose[6]], dtype=float)
-
+                        data = np.array([px, py, pz, yaw, pitch, roll], dtype=float)
                         msg = data.tostring()
                         print("sending message to the client")
                         print(data)

@@ -74,11 +74,11 @@ def main_phasespace():
                     if r.cond > 0:
                         #print(r.pose)
                         
-                        # position in controller frame, rotation in phasespace
+                        # position in phasespace frame
 
-                        #py = r.pose[0] # x in phasespace, y in controller
-                        #pz = r.pose[1] # y in phasespace, z in controller
-                        #px = r.pose[2] # z in phasespace, x in controller
+                        #px = r.pose[0] # x in phasespace
+                        #py = r.pose[1] # y in phasespace
+                        #pz = r.pose[2] # z in phasespace
                         #ori_w = r.pose[3]
                         #ori_x = r.pose[4]
                         #ori_y = r.pose[5]
@@ -87,9 +87,9 @@ def main_phasespace():
                         #data = np.array([px, py, pz, ori_w, ori_x, ori_y, ori_z], dtype=float)
 
                         # mm to m
-                        data = np.array([r.pose[2] / 1000.0, \
-                            r.pose[0] / 1000.0, \
+                        data = np.array([r.pose[0] / 1000.0, \
                             r.pose[1] / 1000.0, \
+                            r.pose[2] / 1000.0, \
                             r.pose[3], r.pose[4], r.pose[5], r.pose[6]], dtype=float)
 
                         msg = data.tostring()
