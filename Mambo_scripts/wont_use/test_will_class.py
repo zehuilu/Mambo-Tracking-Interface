@@ -14,24 +14,51 @@ from mpl_toolkits.mplot3d import Axes3D
 import generate_spline_peak_speed as gen_spline
 
 
-def get_states(sock, mambo):
-    msg = sock.recv(4096)
-    if msg:
-        data = np.fromstring(msg, dtype=float)
-        data = data[-7:]
-        # 2-D numpy array, 3 by 1, [px; py; pz], in meters
-        posi_now = np.reshape(data[0:3], (-1, 1))
-        # 1-D numpy array to list, [w, x, y, z]
-        ori_quat = data[-4:].tolist()
-        return posi_now, ori_quat, mambo
-    else:
-        posi_now = np.array([[0.0], [0.0], [0.0]])
-        ori_quat = [1.0, 0.0, 0.0, 0.0]
-        print("Didn't receive the mocap data via socket")
-        print("Land!")
-        mambo.fly_direct(0, 0, 0, 0, 0.5)
-        mambo.safe_land(5)
-        return posi_now, ori_quat, mambo
+class mambo_with_mocap_socket(object):
+    def __init__(self, HOST, PORT, mamboAddr):
+        # Initialization
+        self.HOST = HOST
+        self.PORT = PORT
+        self.mamboAddr = mamboAddr
+
+
+    def mambo_socket_ini(self):
+        # Create a TCP/IP socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # Connect the socket to the port where the server is listening
+        server_address = (self.HOST, self.PORT)
+        print("connecting to", server_address)
+        sock.connect(server_address)
+        self.sock = sock
+
+        # make my mambo object
+        # remember to set True/False for the wifi depending on if you are using the wifi or the BLE to connect
+        mambo = Mambo(self.mamboAddr, use_wifi=False)
+        print("trying to connect")
+        success = mambo.connect(num_retries=3)
+        print("connected: %s" % success)
+        self.mambo = mambo
+        return mambo, success
+
+
+    def get_states(self, mambo):
+        sock = self.sock
+        msg = sock.recv(4096)
+        if msg:
+            data = np.fromstring(msg, dtype=float)
+            data = data[-7:]
+            # 2-D numpy array, 3 by 1, [px; py; pz], in meters
+            posi_now = np.reshape(data[0:3], (-1, 1))
+            # 1-D numpy array to list, [w, x, y, z]
+            ori_quat = data[-4:].tolist()
+            self.sock = sock
+            self.mambo = mambo
+            return posi_now, ori_quat, mambo
+        else:
+            print("Didn't receive the mocap data via socket")
+            print("Land!")
+            mambo.safe_land(5)
+            self.mambo = mambo
 
 
 if __name__ == '__main__':
@@ -40,25 +67,12 @@ if __name__ == '__main__':
     PORT = 9000        # Port to listen on (non-privileged ports are > 1023)
     # you will need to change this to the address of your mambo
     # this is for Mambo_628236
-    mamboAddr = "D0:3A:93:36:E6:21"
+    mamboAddr = "D0:3A:93:36:E6:21"      
 
-    # Create a TCP/IP socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # Connect the socket to the port where the server is listening
-    server_address = (HOST, PORT)
-    print("connecting to", server_address)
-    sock.connect(server_address)
-    
-    # make my mambo object
-    # remember to set True/False for the wifi depending on if you are using the wifi or the BLE to connect
-    mambo = Mambo(mamboAddr, use_wifi=False)
-    print("trying to connect")
-    success = mambo.connect(num_retries=3)
-    print("connected: %s" % success)
-
+    general_class = mambo_with_mocap_socket(HOST, PORT, mamboAddr)
+    mambo, success = general_class.mambo_socket_ini()
 
 #######################################################
-
     # initialization
     time_list = []
     yaw_list = []
@@ -77,9 +91,6 @@ if __name__ == '__main__':
     pitch_cmd_list = []
     roll_cmd_list = []
     vz_cmd_list = []
-    px_actual_des_list = []
-    py_actual_des_list = []
-    pz_actual_des_list = []
 
     tilt_max = radians(25.0) # in degrees to radians
     vz_max = 2.0 # in m/s
@@ -123,21 +134,22 @@ if __name__ == '__main__':
     Ki_height = 0.0               #pid integral gain
     Kd_height = 0.0               #pid derivative gain
     #pitch/forward velocity controller gains
-    fwdfeedpitch = 130.0          #forward feed coefficient 
-    Kp_pitch = 18.0               #pid proportional gain 
+    fwdfeedpitch = 20.0           #forward feed coefficient 
+    Kp_pitch = 5.0                #pid proportional gain 
     Ki_pitch = 0.0                #pid integral gain
-    Kd_pitch = 8.0                #pid derivative gain
+    Kd_pitch = 0.0                #pid derivative gain
     #roll/lateral velocity controller gains
-    fwdfeedroll = 120.0            #forward feed coefficient 
-    Kp_roll = 17.0                 #pid proportional gain 
-    Ki_roll = 0.0                  #pid integral gain
-    Kd_roll = 5.0                  #pid derivative gain
+    fwdfeedroll = 20.0            #forward feed coefficient 
+    Kp_roll = 5.0                 #pid proportional gain 
+    Ki_roll = 0.0                 #pid integral gain
+    Kd_roll = 0.0                 #pid derivative gain
     #yaw rate controller gains
     fwdfeedyaw = 20.0             #forward feed coefficient 
-    Kp_psi = 40.0                 #pid proportional gain
+    Kp_psi = 50.0                 #pid proportional gain
     Ki_psi = 0.0                  #pid integral gain
     Kd_psi = 0.0                  #pid derivative gain
 #####################################################################
+
 
     if (success):
         # calibrate the Mambo
@@ -171,23 +183,10 @@ if __name__ == '__main__':
             t0 = time.time()
             if idx == 0:
                 t_start = t0
-############################################################
-                # generate a desired trajectory
-                # those are all in the phasespace frame
-                # vx points front, vy points up, vz points right, always check the length of trajectory
-                v_peak = np.array([[-0.5], [0.0], [0.0]])
-                posi_now, ori_quat, mambo = get_states(sock, mambo)
-                p_0 = posi_now
-                v_0 = np.array([[0.0], [0.0], [0.0]])
-                a_0 = np.array([[0.0], [0.0], [0.0]])
-                t_peak = 2.5
-                t_total = 3.0
-                gen_class = gen_spline.generate_spline_by_peak_speed(p_0, v_0, a_0, v_peak, t_peak, t_total, dt_traj)
-                time_ref, traj_ref = gen_class.do_calculation()
-#############################################################
 
             # get states
-            posi_now, ori_quat, mambo = get_states(sock, mambo)
+            posi_now, ori_quat, mambo = general_class.get_states(mambo)
+
             # compute the velocity
             velo_now = (posi_now - posi_pre) / dt
             posi_pre = posi_now
@@ -204,6 +203,22 @@ if __name__ == '__main__':
 
             if idx < 0:
                 # Do nothing
+                if idx == -5:
+############################################################
+                    # generate a desired trajectory
+                    # those are all in the phasespace frame
+                    # vx points front, vy points up, vz points right, always check the length of trajectory
+                    v_peak = np.array([[0.0], [0.0], [0.3]])
+                    posi_now, ori_quat, mambo = general_class.get_states(mambo)
+                    p_0 = posi_now
+                    v_0 = np.array([[0.0], [0.0], [0.0]])
+                    a_0 = np.array([[0.0], [0.0], [0.0]])
+                    t_peak = 1.5
+                    t_total = 3.0
+                    gen_class = gen_spline.generate_spline_by_peak_speed(p_0, v_0, a_0, v_peak, t_peak, t_total, dt_traj)
+                    time_ref, traj_ref = gen_class.do_calculation()
+#############################################################
+
                 mambo.smart_sleep(dt_traj)
 
             else:
@@ -211,13 +226,9 @@ if __name__ == '__main__':
 
                 # load the current and the next desired points
                 # 2-D numpy array, 9 by 1, px, py, pz, vx, vy, vz, ax, ay, az
-                point_ref_0 = gen_spline.do_interpolate(t_now, traj_ref, dt_traj)
+                #point_ref_0 = gen_spline.do_interpolate(t_now, traj_ref, dt_traj)
                 point_ref_1 = gen_spline.do_interpolate(t_now + dt_traj, traj_ref, dt_traj)
                 
-                px_actual_des_list.append(point_ref_0[0, 0])
-                py_actual_des_list.append(point_ref_0[1, 0])
-                pz_actual_des_list.append(point_ref_0[2, 0])
-
                 # position feedforward vector in global frame
                 feedforward_posi = -1.0 * (posi_now - np.reshape(point_ref_1[0:3, 0], (-1, 1))) # 3 by 1
                 feedforward_yaw = -1.0 * (yaw_now - yaw_des)
@@ -236,8 +247,10 @@ if __name__ == '__main__':
                 yaw_rate_cmd = Kp_psi*P_now[3, 0] + fwdfeedyaw*feedforward_yaw 
 
 ########################################
+                pitch_cmd = 1.0 * pitch_cmd
                 yaw_rate_cmd = -1.0 * yaw_rate_cmd
 ########################################
+
 
                 # record
                 px_list.append(posi_now[0, 0])
@@ -343,42 +356,39 @@ if __name__ == '__main__':
         ax6.set_ylabel("Roll [radian]")
         plt.tight_layout()
 
-        a = '''
-        # plot 3, position tracking errors
-        error_px = (np.array([px_actual_des_list]) - np.array([px_list])).tolist()
-        error_py = (np.array([py_actual_des_list]) - np.array([py_list])).tolist()
-        error_pz = (np.array([pz_actual_des_list]) - np.array([pz_list])).tolist()
+        plot_not_use = """
+        # plot 3, desired euler angles
         fig_3, (ax7, ax8, ax9) = plt.subplots(3, 1)
-        ax7.plot(time_list, error_px, color="red", linestyle="-", label="error px")
+        ax7.plot(time_list, yaw_des_list, color="red", linestyle="-", label="desired yaw angle")
         ax7.legend(loc="upper left")
         ax7.set_xlabel("Time [s]")
-        ax7.set_ylabel("position error [m]")
-        ax8.plot(time_list, error_py, color="red", linestyle="-", label="error py")
+        ax7.set_ylabel("desired yaw [degree]")
+        ax8.plot(time_list, pitch_des_list, color="red", linestyle="-", label="desired pitch")
         ax8.legend(loc="upper left")
         ax8.set_xlabel("Time [s]")
-        ax8.set_ylabel("position error [m]")
-        ax9.plot(time_list, error_pz, color="red", linestyle="-", label="error pz")
+        ax8.set_ylabel("desired pitch [degree]")
+        ax9.plot(time_list, roll_des_list, color="red", linestyle="-", label="desired roll")
         ax9.legend(loc="upper left")
         ax9.set_xlabel("Time [s]")
-        ax9.set_ylabel("position error [m]")
+        ax9.set_ylabel("desired roll [degree]")
         plt.tight_layout()
-        '''
+        """
 
         # plot 4, inputs which were sent to the Mambo
         fig_4, ((ax10, ax11), (ax12, ax13)) = plt.subplots(2, 2)
-        ax10.plot(time_list, yaw_cmd_list, color="red", linestyle="-", label="yaw rate command")
+        ax10.plot(time_list, yaw_cmd_list, color="red", linestyle="-", label="yaw rate command (unsaturated)")
         ax10.legend(loc="upper left")
         ax10.set_xlabel("Time [s]")
         ax10.set_ylabel("yaw rate command [percentage]")
-        ax11.plot(time_list, pitch_cmd_list, color="red", linestyle="-", label="pitch command")
+        ax11.plot(time_list, pitch_cmd_list, color="red", linestyle="-", label="pitch command (unsaturated)")
         ax11.legend(loc="upper left")
         ax11.set_xlabel("Time [s]")
         ax11.set_ylabel("pitch command [percentage]")
-        ax12.plot(time_list, roll_cmd_list, color="red", linestyle="-", label="roll command")
+        ax12.plot(time_list, roll_cmd_list, color="red", linestyle="-", label="roll command (unsaturated)")
         ax12.legend(loc="upper left")
         ax12.set_xlabel("Time [s]")
         ax12.set_ylabel("roll command [percentage]")
-        ax13.plot(time_list, vz_cmd_list, color="red", linestyle="-", label="vertical speed command")
+        ax13.plot(time_list, vz_cmd_list, color="red", linestyle="-", label="vertical speed command (unsaturated)")
         ax13.legend(loc="upper left")
         ax13.set_xlabel("Time [s]")
         ax13.set_ylabel("vertical speed command [percentage]")
