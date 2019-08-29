@@ -1,9 +1,7 @@
 Terminal 1:
 cd Mambo_scripts
-python3 mocap_socket_quat.py
+python3 mocap_original_socket_quat.py
 
 
 Terminal 2:
-python3 test_mambo_mocap.py
-python3 test_mamno_connection.py
-python3 test_mellinger.py
+python3 test_will.py
