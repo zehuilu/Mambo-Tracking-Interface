@@ -28,6 +28,24 @@ def get_states_mocap(sock, mambo):
     return posi_now, ori_quat, mambo
 
 
+def get_states_mocap_wo_mambo(sock):
+# get real-time states from phasespace, this function assumes only 1 rigid body working
+    msg = sock.recv(4096)
+    if msg:
+        data = np.fromstring(msg, dtype=float)
+        data = data[-10:]
+        # 2-D numpy array, 3 by 1, [px; py; pz], in meters
+        posi_now = np.reshape(data[0:3], (-1, 1))
+        velo_now = np.reshape(data[3:6], (-1, 1))
+        # 1-D numpy array to list, [w, x, y, z]
+        ori_quat = data[-4:].tolist()
+    else:
+        posi_now = np.array([[0.0], [0.0], [0.0]])
+        velo_now = np.array([[0.0], [0.0], [0.0]])
+        ori_quat = [1.0, 0.0, 0.0, 0.0]
+    return posi_now, velo_now, ori_quat
+
+
 def compute_states(posi_now, posi_pre, ori_quat, yaw_prev, dt):
 # based on function get_states_mocap(), compute some necessary states
     # compute the velocity
@@ -60,9 +78,15 @@ def update_csv(Directory):
 # assume traj_ref has the whole time trajectory information
 # assume traj_ref only has positions and velocities
     csv_file_list = sorted(glob.glob(Directory + '*.csv'), key=os.path.getmtime)
-    FileName = csv_file_list[-1]
-    traj_ref, T = import_csv(FileName)
-    return traj_ref, T
+    if not csv_file_list:
+        hover_flag = True
+        traj_ref = np.zeros((6, 2), dtype=float)
+        T = np.array([0.0, 1.0], dtype=float)
+    else:
+        FileName = csv_file_list[-1]
+        traj_ref, T = import_csv(FileName)
+        hover_flag = False
+    return traj_ref, T, hover_flag
 
 
 def record_sysid(idx, states_history, t_now, posi_now, yaw_now, pitch_now, roll_now, yaw_rate_cmd, pitch_cmd, roll_cmd, vz_cmd):
@@ -112,7 +136,7 @@ def interpolate_traj(x_queue, x, y):
     return y_queue
 
 
-def LLC_PID(posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt):
+def LLC_PID(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt):
 #####################################################################
 # control input vz depends on the ultrasonic sensor, which means there shouldn't be any obstacles under the drone.
 
@@ -132,6 +156,28 @@ def LLC_PID(posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now
     Ki_pitch = 0.0                #pid integral gain
     Kd_pitch = 8.0                #pid derivative gain
     #roll/lateral velocity controller gains
+    fwdfeedroll = 30.0            #forward feed coefficient 
+    Kp_roll = 1.0                 #pid proportional gain 
+    Ki_roll = 0.0                 #pid integral gain
+    Kd_roll = 0.2                 #pid derivative gain
+    # 50 1 0.1
+    #yaw rate controller gains
+    fwdfeedyaw = 20.0             #forward feed coefficient 
+    Kp_psi = 40.0                 #pid proportional gain
+    Ki_psi = 0.0                  #pid integral gain
+    Kd_psi = 0.0                  #pid derivative gain
+#####################################################################
+    a = '''
+    fwdfeedheight = 0.0           #forward feed coefficient 
+    Kp_height = 10.0              #pid proportional gain
+    Ki_height = 0.0               #pid integral gain
+    Kd_height = 0.0               #pid derivative gain
+    #pitch/forward velocity controller gains
+    fwdfeedpitch = 130.0          #forward feed coefficient 
+    Kp_pitch = 18.0               #pid proportional gain 
+    Ki_pitch = 0.0                #pid integral gain
+    Kd_pitch = 8.0                #pid derivative gain
+    #roll/lateral velocity controller gains
     fwdfeedroll = 120.0            #forward feed coefficient 
     Kp_roll = 17.0                 #pid proportional gain 
     Ki_roll = 0.0                  #pid integral gain
@@ -141,6 +187,7 @@ def LLC_PID(posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now
     Kp_psi = 40.0                 #pid proportional gain
     Ki_psi = 0.0                  #pid integral gain
     Kd_psi = 0.0                  #pid derivative gain
+    '''
 #####################################################################
     # position feedforward vector in global frame
     feedforward_posi = -1.0 * (posi_now - np.reshape(point_ref_1[0:3, 0], (-1, 1))) # 3 by 1
@@ -151,9 +198,14 @@ def LLC_PID(posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now
     P_pre = P_now
     P_now = np.vstack((feedforward_posi_body - velo_body, feedforward_yaw - yaw_rate))
     D_now = (P_now - P_pre) / dt
-                
-    pitch_cmd = Kp_pitch*P_now[0, 0] + Kd_pitch*D_now[0, 0] + fwdfeedpitch*feedforward_posi_body[0, 0]
-    roll_cmd = Kp_roll*P_now[2, 0] + Kd_roll*D_now[2, 0] + fwdfeedroll*feedforward_posi_body[2, 0]
+
+    if idx == 0:
+        pitch_cmd = Kp_pitch*P_now[0, 0] + fwdfeedpitch*feedforward_posi_body[0, 0]
+        roll_cmd = Kp_roll*P_now[2, 0] + fwdfeedroll*feedforward_posi_body[2, 0]
+    else:
+        pitch_cmd = Kp_pitch*P_now[0, 0] + Kd_pitch*D_now[0, 0] + fwdfeedpitch*feedforward_posi_body[0, 0]
+        roll_cmd = Kp_roll*P_now[2, 0] + Kd_roll*D_now[2, 0] + fwdfeedroll*feedforward_posi_body[2, 0]
+
     vz_cmd = point_ref_1[4, 0] / vz_max * 100.0 + Kp_height * (point_ref_0[1, 0] - posi_now[1, 0])
     yaw_rate_cmd = Kp_psi*P_now[3, 0] + fwdfeedyaw*feedforward_yaw 
 
