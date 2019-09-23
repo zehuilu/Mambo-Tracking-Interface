@@ -14,13 +14,17 @@ import helper_function as hf
 
 
 if __name__ == '__main__':
+#######################################################
+    # you will need to change this to the address of your mambo
+    # No.2 is Mambo_628236, No. 1 is roahm_mambo_1.
+    mamboAddr_dict = {"1":"E0:14:4A:45:3D:CB", "2":"D0:3A:93:36:E6:21"}
+    # select the mambo
+    str_mambo = "2"
+    mamboAddr = mamboAddr_dict[str_mambo]
 
 #######################################################
     HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
     PORT = 9000        # Port to listen on (non-privileged ports are > 1023)
-    # you will need to change this to the address of your mambo
-    # this is for Mambo_628236
-    mamboAddr = "D0:3A:93:36:E6:21"
 
     # Create a TCP/IP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -39,6 +43,8 @@ if __name__ == '__main__':
     # define some variables
     Directory_sysid = '/home/roahmlab/Mambo_scripts/low_level_controller/sysid_data/'
     Directory_traj = '/home/roahmlab/Mambo_scripts/low_level_controller/traj_lib/'
+    Directory_delete = '/home/roahmlab/Mambo_scripts/low_level_controller/traj_lib/*'
+
     tilt_max = radians(25.0) # in degrees to radians
     vz_max = 2.0 # in m/s
     yaw_rate_max = 3.14 # in radians/sec
@@ -64,6 +70,8 @@ if __name__ == '__main__':
     time_plot = []
     pv_plot = 0.0
     angle_and_cmd_plot = 0.0
+
+    hf.remove_traj_ref_lib(Directory_delete)
 
 
 # control input vz depends on the ultrasonic sensor, which means there shouldn't be any obstacles under the drone.
@@ -95,7 +103,7 @@ if __name__ == '__main__':
 
 # Remember to change the total time!!!!!!!!!!!!!!!!!
 
-        while t_now < 20.0:
+        while t_now < 12.60:
             t0 = time.time()
 
             # get states

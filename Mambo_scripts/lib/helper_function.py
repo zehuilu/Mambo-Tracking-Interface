@@ -8,6 +8,12 @@ import csv
 import time
 
 
+def remove_traj_ref_lib(Directory):
+    files = glob.glob(Directory)
+    for f in files:
+        os.remove(f)
+
+
 def get_states_mocap(sock, mambo):
 # get real-time states from phasespace, this function assumes only 1 rigid body working
     msg = sock.recv(4096)
