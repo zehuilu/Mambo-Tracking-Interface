@@ -52,7 +52,8 @@ if __name__ == '__main__':
     # remember: in mocap system, euler angles depends on the fixed global axes,
     # but for drone commands, euler angles depends on the current orientation
     # need to stablize yaw very quickly
-    yaw_des = 0.0 # in radians
+    #yaw_des = 0.0 # in radians
+    yaw_des = 3.1415926 # in radians
 
     # PID terms
     P_now = np.array([[0.0], [0.0], [0.0], [0.0]])
@@ -103,7 +104,8 @@ if __name__ == '__main__':
 
 # Remember to change the total time!!!!!!!!!!!!!!!!!
 
-        while t_now < 12.60:
+        # No.1, 2, 3, 4
+        while t_now < 13.60:
             t0 = time.time()
 
             # get states
@@ -129,7 +131,7 @@ if __name__ == '__main__':
                 point_ref_1 = hf.interpolate_traj(t_now + dt_traj, T, traj_ref)
 
                 P_now, pitch_cmd, roll_cmd, vz_cmd, yaw_rate_cmd = \
-                hf.LLC_PID(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt)
+                hf.LLC_PID_sin(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt)
 
                 # record
                 states_history = hf.record_sysid(idx, states_history, t_now, posi_now, yaw_now, pitch_now, roll_now, yaw_rate_cmd, pitch_cmd, roll_cmd, vz_cmd)

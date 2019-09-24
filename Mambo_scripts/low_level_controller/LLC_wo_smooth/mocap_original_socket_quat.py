@@ -36,17 +36,17 @@ def main_phasespace():
     owl.assignMarker(tracker_id, 134, "134", "pos=-41.7818,-8.1816,-52.0809")
     owl.assignMarker(tracker_id, 135, "135", "pos=19.3542,23.8872,5.8064")
 
-    a = '''
+    
     # this is for No.1, roahm_mambo_1
-    owl.assignMarker(tracker_id, 136, "136", "pos=-3.4676,2.6817,-26.6443")
-    owl.assignMarker(tracker_id, 137, "137", "pos=-7.7717,-3.3691,28.0087")
-    owl.assignMarker(tracker_id, 138, "138", "pos=-55.3168,-8.7290,37.2145")
-    owl.assignMarker(tracker_id, 139, "139", "pos=41.6391,-12.2640,53.2985")
-    owl.assignMarker(tracker_id, 140, "140", "pos=53.6591,-12.5237,-39.1312")
-    owl.assignMarker(tracker_id, 141, "141", "pos=-5.9832,22.6972,-4.1788")
-    owl.assignMarker(tracker_id, 142, "142", "pos=-38.0154,-10.9053,-54.9944")
-    owl.assignMarker(tracker_id, 143, "143", "pos=16.3519,23.5310,6.7474")
-    '''
+    #owl.assignMarker(tracker_id, 136, "136", "pos=-3.4676,2.6817,-26.6443")
+    #owl.assignMarker(tracker_id, 137, "137", "pos=-7.7717,-3.3691,28.0087")
+    #owl.assignMarker(tracker_id, 138, "138", "pos=-55.3168,-8.7290,37.2145")
+    #owl.assignMarker(tracker_id, 139, "139", "pos=41.6391,-12.2640,53.2985")
+    #owl.assignMarker(tracker_id, 140, "140", "pos=53.6591,-12.5237,-39.1312")
+    #owl.assignMarker(tracker_id, 141, "141", "pos=-5.9832,22.6972,-4.1788")
+    #owl.assignMarker(tracker_id, 142, "142", "pos=-38.0154,-10.9053,-54.9944")
+    #owl.assignMarker(tracker_id, 143, "143", "pos=16.3519,23.5310,6.7474")
+    
 
     
     # once you hit this point, the program will connect with the receiver and the lights should turn on
