@@ -5,7 +5,7 @@ from pyparrot.Minidrone import Mambo
 import socket
 import numpy as np
 import time
-from math import degrees, radians, sin, cos, sqrt
+from math import degrees, radians, sin, cos
 import matplotlib
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -15,12 +15,45 @@ import helper_function as hf
 
 if __name__ == '__main__':
 #######################################################
+    # user define
+
+    # you will need to change this to the address of your mambo
+    # No.2 is Mambo_628236, No. 1 is roahm_mambo_1.
+    # select the mambo
+    str_mambo = "2"
+
+    # if fly backward, choose pi, otherwise, choose 0.0
+    yaw_des = 0.0 # in radians
+    #yaw_des = np.pi # in radians
+
+    # No.x configuration
+    name_obstacles = "1"
+
+    # if True, track static, otherwise, track dynamic
+    static_dynamic_obs_flag = False
+
+
+#######################################################
     # you will need to change this to the address of your mambo
     # No.2 is Mambo_628236, No. 1 is roahm_mambo_1.
     mamboAddr_dict = {"1":"E0:14:4A:45:3D:CB", "2":"D0:3A:93:36:E6:21"}
-    # select the mambo
-    str_mambo = "2"
     mamboAddr = mamboAddr_dict[str_mambo]
+
+    if static_dynamic_obs_flag:
+        # v_max = 1.0 m/s
+        #t_stop_dict = {"1":7.60, "2":9.10, "3":8.60, "4":7.60} old RTD
+
+        # v_max = 0.5 m/s
+        #t_stop_dict = {"1":12.10, "2":22.60, "3":13.60, "4":12.60} old RTD
+        t_stop_dict = {"1":12.60, "2":22.60, "3":14.10, "4":22.60, "5":13.10}
+        t_stop = t_stop_dict[name_obstacles]
+    else:
+        # No.1 ped + 1 static obstacle
+        # No.2 eight shape
+        # No.3 circle
+        t_stop_dict = {"1":19.80, "2":14.30, "3":13.80}
+        t_stop = t_stop_dict[name_obstacles]
+
 
 #######################################################
     HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
@@ -52,8 +85,6 @@ if __name__ == '__main__':
     # remember: in mocap system, euler angles depends on the fixed global axes,
     # but for drone commands, euler angles depends on the current orientation
     # need to stablize yaw very quickly
-    #yaw_des = 0.0 # in radians
-    yaw_des = 3.1415926 # in radians
 
     # PID terms
     P_now = np.array([[0.0], [0.0], [0.0], [0.0]])
@@ -73,7 +104,6 @@ if __name__ == '__main__':
     angle_and_cmd_plot = 0.0
 
     hf.remove_traj_ref_lib(Directory_delete)
-
 
 # control input vz depends on the ultrasonic sensor, which means there shouldn't be any obstacles under the drone.
 #######################################################
@@ -98,14 +128,15 @@ if __name__ == '__main__':
         mambo.smart_sleep(1)
         mambo.safe_takeoff(5)
         print("taking off!")
+        mambo.fly_direct(0, 0, 0, 0, 0.5)
+        print("zero input first!")
 #######################################################
 
         idx = 0
 
 # Remember to change the total time!!!!!!!!!!!!!!!!!
 
-        # No.1, 2, 3, 4
-        while t_now < 13.60:
+        while t_now < t_stop:
             t0 = time.time()
 
             # get states
@@ -118,28 +149,33 @@ if __name__ == '__main__':
             traj_ref, T, hover_flag = hf.update_csv(Directory_traj)
 
             if not hover_flag:
-                if hover_flag != hover_flag_pre:
+                #if hover_flag != hover_flag_pre:
+                if (hover_flag == False) & (hover_flag_pre == True):
                     t_start = t0
                     idx = 0
-                
+
                 t_now = t0 - t_start
                 print("Total Time")
                 print(t_now)
-                # load the current and the next desired points
-                # 2-D numpy array, 6 by 1, px, py, pz, vx, vy, vz
-                point_ref_0 = hf.interpolate_traj(t_now, T, traj_ref)
-                point_ref_1 = hf.interpolate_traj(t_now + dt_traj, T, traj_ref)
 
-                P_now, pitch_cmd, roll_cmd, vz_cmd, yaw_rate_cmd = \
-                hf.LLC_PID_sin(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt)
+                if True:
+                    # load the current and the next desired points
+                    # 2-D numpy array, 6 by 1, px, py, pz, vx, vy, vz
+                    point_ref_0 = hf.interpolate_traj(t_now, T, traj_ref)
+                    point_ref_1 = hf.interpolate_traj(t_now + dt_traj, T, traj_ref)
 
-                # record
-                states_history = hf.record_sysid(idx, states_history, t_now, posi_now, yaw_now, pitch_now, roll_now, yaw_rate_cmd, pitch_cmd, roll_cmd, vz_cmd)
-                # p, v, yaw, pitch, roll, yaw, pitch, roll, vz
-                time_plot, pv_plot, angle_and_cmd_plot = hf.record_states_plot(idx, t_now, posi_now, velo_now, yaw_now, pitch_now, roll_now, yaw_rate_cmd, pitch_cmd, roll_cmd, vz_cmd, time_plot, pv_plot, angle_and_cmd_plot)
-                # send commands
-                #mambo.smart_sleep(dt_traj)
-                mambo.fly_direct(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, dt_traj)
+                    P_now, pitch_cmd, roll_cmd, vz_cmd, yaw_rate_cmd = \
+                        hf.LLC_PID_sin_slow(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt)
+
+                    # record
+                    states_history = hf.record_sysid(idx, states_history, t_now, posi_now, yaw_now, pitch_now, roll_now, yaw_rate_cmd, pitch_cmd, roll_cmd, vz_cmd)
+                    # p, v, yaw, pitch, roll, yaw, pitch, roll, vz
+                    time_plot, pv_plot, angle_and_cmd_plot = hf.record_states_plot(idx, t_now, posi_now, velo_now, yaw_now, pitch_now, roll_now, yaw_rate_cmd, pitch_cmd, roll_cmd, vz_cmd, time_plot, pv_plot, angle_and_cmd_plot)
+                    # send commands
+                    #mambo.smart_sleep(dt_traj)
+                    mambo.fly_direct(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, dt_traj)
+                else:
+                    mambo.fly_direct(0.0, 0.0, 0.0, 0.0, dt_traj)
                 
             else:
                 print("Haven't generated csv file in MATLAB")
@@ -155,7 +191,7 @@ if __name__ == '__main__':
             idx += 1
 
 
-        mambo.fly_direct(0, 0, 0, 0, dt_traj)         
+        mambo.fly_direct(0, 0, 0, 0, 1.0)
     
         print("landing")
         mambo.safe_land(5)
@@ -246,26 +282,27 @@ if __name__ == '__main__':
         ax6.set_ylabel("Roll [radian]")
         plt.tight_layout()
 
-        a = '''
+        
         # plot 3, position tracking errors
-        error_px = (np.array([px_actual_des_list]) - np.array([px_list])).tolist()
-        error_py = (np.array([py_actual_des_list]) - np.array([py_list])).tolist()
-        error_pz = (np.array([pz_actual_des_list]) - np.array([pz_list])).tolist()
+
+        p_actual_des = hf.interpolate_traj(time_plot, T, traj_ref)[0 : 3, :]
+        error = p_actual_des - pv_plot[0 : 3, :]
+
         fig_3, (ax7, ax8, ax9) = plt.subplots(3, 1)
-        ax7.plot(time_plot, error_px, color="red", linestyle="-", label="error px")
+        ax7.plot(time_plot, error[0, :].tolist(), color="red", linestyle="-", label="error px")
         ax7.legend(loc="upper left")
         ax7.set_xlabel("Time [s]")
         ax7.set_ylabel("position error [m]")
-        ax8.plot(time_plot, error_py, color="red", linestyle="-", label="error py")
+        ax8.plot(time_plot, error[1, :].tolist(), color="red", linestyle="-", label="error py")
         ax8.legend(loc="upper left")
         ax8.set_xlabel("Time [s]")
         ax8.set_ylabel("position error [m]")
-        ax9.plot(time_plot, error_pz, color="red", linestyle="-", label="error pz")
+        ax9.plot(time_plot, error[2, :].tolist(), color="red", linestyle="-", label="error pz")
         ax9.legend(loc="upper left")
         ax9.set_xlabel("Time [s]")
         ax9.set_ylabel("position error [m]")
         plt.tight_layout()
-        '''
+        
 
         # plot 4, inputs which were sent to the Mambo
         fig_4, ((ax10, ax11), (ax12, ax13)) = plt.subplots(2, 2)
@@ -304,6 +341,24 @@ if __name__ == '__main__':
         ax16.legend(loc="upper left")
         ax16.set_xlabel("Time [s]")
         ax16.set_ylabel("vz [m/s]")
+        plt.tight_layout()
+
+        # plot 6, actual euler angles
+        yaw_cal = np.array(yaw_list)
+        yaw_cal = np.sin(yaw_cal).tolist()
+        fig_6, (ax17, ax18, ax19) = plt.subplots(3, 1)
+        ax17.plot(time_plot, yaw_cal, color="red", linestyle="-", label="actual sin(yaw)")
+        ax17.legend(loc="upper left")
+        ax17.set_xlabel("Time [s]")
+        ax17.set_ylabel("sin(yaw)")
+        ax18.plot(time_plot, pitch_list, color="red", linestyle="-", label="actual pitch")
+        ax18.legend(loc="upper left")
+        ax18.set_xlabel("Time [s]")
+        ax18.set_ylabel("Pitch [radian]")
+        ax19.plot(time_plot, roll_list, color="red", linestyle="-", label="actual roll")
+        ax19.legend(loc="upper left")
+        ax19.set_xlabel("Time [s]")
+        ax19.set_ylabel("Roll [radian]")
         plt.tight_layout()
 
         plt.show()
