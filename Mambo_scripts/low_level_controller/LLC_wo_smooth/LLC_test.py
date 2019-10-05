@@ -27,10 +27,10 @@ if __name__ == '__main__':
     #yaw_des = np.pi # in radians
 
     # No.x configuration
-    name_obstacles = "1"
+    name_obstacles = "3"
 
     # if True, track static, otherwise, track dynamic
-    static_dynamic_obs_flag = True
+    static_dynamic_obs_flag = False
 
 
 #######################################################
@@ -40,19 +40,15 @@ if __name__ == '__main__':
     mamboAddr = mamboAddr_dict[str_mambo]
 
     if static_dynamic_obs_flag:
-        # v_max = 1.0 m/s
-        #t_stop_dict = {"1":7.60, "2":9.10, "3":8.60, "4":7.60} old RTD
-
         # v_max = 0.5 m/s
         #t_stop_dict = {"1":12.10, "2":22.60, "3":13.60, "4":12.60} old RTD
-        t_stop_dict = {"1":11.60, "2":22.60, "3":14.10, "4":22.60, "5":13.10}
+        t_stop_dict = {"1":11.80, "2":22.80, "3":12.80, "4":22.30, "5":12.80}
         t_stop = t_stop_dict[name_obstacles]
     else:
         # No.1 ped + 1 static obstacle
         # No.2 eight shape
         # No.3 circle
-        #t_stop_dict = {"1":19.10, "2":14.10, "3":13.80}
-        t_stop_dict = {"1":7.10, "2":14.10, "3":13.80}
+        t_stop_dict = {"1":17.30, "2":14.80, "3":13.80}
         t_stop = t_stop_dict[name_obstacles]
 
 

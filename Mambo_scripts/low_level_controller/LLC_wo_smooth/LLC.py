@@ -27,7 +27,7 @@ if __name__ == '__main__':
     #yaw_des = np.pi # in radians
 
     # No.x configuration
-    name_obstacles = "1"
+    name_obstacles = "2"
 
     # if True, track static, otherwise, track dynamic
     static_dynamic_obs_flag = False
@@ -51,7 +51,7 @@ if __name__ == '__main__':
         # No.1 ped + 1 static obstacle
         # No.2 eight shape
         # No.3 circle
-        t_stop_dict = {"1":19.80, "2":14.30, "3":13.80}
+        t_stop_dict = {"1":19.30, "2":14.30, "3":13.80}
         t_stop = t_stop_dict[name_obstacles]
 
 
@@ -165,7 +165,7 @@ if __name__ == '__main__':
                     point_ref_1 = hf.interpolate_traj(t_now + dt_traj, T, traj_ref)
 
                     P_now, pitch_cmd, roll_cmd, vz_cmd, yaw_rate_cmd = \
-                        hf.LLC_PID_sin_slow(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt)
+                        hf.LLC_PID_sin_slow_test(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt)
 
                     # record
                     states_history = hf.record_sysid(idx, states_history, t_now, posi_now, yaw_now, pitch_now, roll_now, yaw_rate_cmd, pitch_cmd, roll_cmd, vz_cmd)
