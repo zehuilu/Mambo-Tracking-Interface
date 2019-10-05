@@ -22,4 +22,8 @@ function [traj_ped_1,time_ped_1,traj_ped_2,time_ped_2] = add_ped_obstacle()
     traj_py_2 = position_ini_2(2) : vy_2 : position_ini_2(2)+vy_2*num_second_2 ;
     traj_pz_2 = position_ini_2(3) .* ones(size(traj_px_2)) ;
     traj_ped_2 = [traj_px_2; traj_py_2; traj_pz_2] ;
+    
+    traj_ped_2 = [traj_ped_2(:, 1), traj_ped_2] ;
+    num_second_2 = size(traj_ped_2, 2) - 1 ;
+    
     time_ped_2 = 0 : 1 : num_second_2;
