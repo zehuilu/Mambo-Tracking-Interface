@@ -95,8 +95,11 @@ def update_csv(Directory):
         traj_ref = np.zeros((6, 2), dtype=float)
         T = np.array([0.0, 1.0], dtype=float)
     else:
-        FileName = csv_file_list[-1]
-        traj_ref, T = import_csv(FileName)
+        try:
+            traj_ref, T = import_csv(csv_file_list[-1])
+        except:
+            traj_ref, T = import_csv(csv_file_list[-2])
+            print("The lastest one is empty!!!")
         hover_flag = False
     return traj_ref, T, hover_flag
 
@@ -415,8 +418,8 @@ def LLC_PID_sin_slow_test(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_
     # height controller variables and gains
     # see below
     fwdfeedheight = 0.0           #forward feed coefficient 
-    Kp_height = 5.0              #pid proportional gain
-    # 10
+    Kp_height = 0.0              #pid proportional gain
+    # 1
     Ki_height = 0.0               #pid integral gain
     Kd_height = 0.0               #pid derivative gain
     #pitch/forward velocity controller gains
