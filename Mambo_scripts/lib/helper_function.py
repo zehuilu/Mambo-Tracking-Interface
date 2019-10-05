@@ -74,6 +74,8 @@ def compute_states(posi_now, posi_pre, ori_quat, yaw_prev, dt):
 def import_csv(FileName):
 # import csv file from a file folder
 # only export desired positions and velocities
+# if offset_flag is True, use the original reference height, it's only used in the end
+# if offset_flag is False, substract 0.1 meters to the height, it's used in the loop
     Z = np.genfromtxt(FileName, dtype=float, delimiter=',')
     print("checkpoint for import_csv")
     print(Z.shape)
@@ -229,7 +231,7 @@ def LLC_PID_slow(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_
     return P_now, pitch_cmd, roll_cmd, vz_cmd, yaw_rate_cmd
 
 
-def LLC_PID_sin_slow(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt):
+def LLC_ar_sin_slow(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt):
 #####################################################################
 # control input vz depends on the ultrasonic sensor, which means there shouldn't be any obstacles under the drone.
 
@@ -288,64 +290,6 @@ def LLC_PID_sin_slow(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, 
 
     return P_now, pitch_cmd, roll_cmd, vz_cmd, yaw_rate_cmd
 
-
-def LLC_PID_sin_fast(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt):
-#####################################################################
-# control input vz depends on the ultrasonic sensor, which means there shouldn't be any obstacles under the drone.
-
-    # PID control gains for Vertical Velocity Command
-    # tune the height and yaw first, because they are decoupled!!!
-    # control input vz depends on the ultrasonic sensor, which means there shouldn't be any obstacles under the drone.
-
-    # height controller variables and gains
-    # see below
-    fwdfeedheight = 0.0           #forward feed coefficient 
-    Kp_height = 10.0              #pid proportional gain
-    Ki_height = 0.0               #pid integral gain
-    Kd_height = 0.0               #pid derivative gain
-    #pitch/forward velocity controller gains
-    fwdfeedpitch = 160.0          #forward feed coefficient 
-    Kp_pitch = 0.0               #pid proportional gain 
-    Ki_pitch = 0.0                #pid integral gain
-    Kd_pitch = 8.0                #pid derivative gain
-    #roll/lateral velocity controller gains
-    fwdfeedroll = 22.0            #forward feed coefficient 
-    Kp_roll = 0.0                 #pid proportional gain 
-    Ki_roll = 0.0                 #pid integral gain
-    Kd_roll = 0.0                 #pid derivative gain
-    #yaw rate controller gains
-    #22 0.1 0.01
-    fwdfeedyaw = 20.0             #forward feed coefficient 
-    Kp_psi = 40.0                 #pid proportional gain
-    Ki_psi = 0.0                  #pid integral gain
-    Kd_psi = 0.0                  #pid derivative gain
-#####################################################################
-    # position feedforward vector in global frame
-    feedforward_posi = -1.0 * (posi_now - np.reshape(point_ref_1[0:3, 0], (-1, 1))) # 3 by 1
-    feedforward_yaw = -1.0 * (sin(yaw_now) - sin(yaw_des))
-    # position feedforward vector in body frame
-    feedforward_posi_body = np.dot(np.linalg.pinv(Rot_Mat), feedforward_posi)
-
-    P_pre = P_now
-    P_now = np.vstack((feedforward_posi_body - velo_body, feedforward_yaw - sin(yaw_rate)))
-    D_now = (P_now - P_pre) / dt
-
-    if idx == 0:
-        pitch_cmd = Kp_pitch*P_now[0, 0] + fwdfeedpitch*feedforward_posi_body[0, 0]
-        roll_cmd = Kp_roll*P_now[2, 0] + fwdfeedroll*feedforward_posi_body[2, 0]
-    else:
-        pitch_cmd = Kp_pitch*P_now[0, 0] + Kd_pitch*D_now[0, 0] + fwdfeedpitch*feedforward_posi_body[0, 0]
-        roll_cmd = Kp_roll*P_now[2, 0] + Kd_roll*D_now[2, 0] + fwdfeedroll*feedforward_posi_body[2, 0]
-
-    vz_cmd = point_ref_1[4, 0] / vz_max * 100.0 + Kp_height * (point_ref_0[1, 0] - posi_now[1, 0])
-    yaw_rate_cmd = Kp_psi*P_now[3, 0] + fwdfeedyaw*feedforward_yaw 
-
-    if yaw_des == np.pi:
-        yaw_rate_cmd = 1.0 * yaw_rate_cmd
-    else:
-        yaw_rate_cmd = -1.0 * yaw_rate_cmd
-
-    return P_now, pitch_cmd, roll_cmd, vz_cmd, yaw_rate_cmd
 
 # only be used for test yaw controller
 def LLC_test_yaw(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt):
@@ -407,7 +351,7 @@ def LLC_test_yaw(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_
     return P_now, pitch_cmd, roll_cmd, vz_cmd, yaw_rate_cmd
 
 
-def LLC_PID_sin_slow_test(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt):
+def LLC_PD_sin_slow(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt):
 #####################################################################
 # control input vz depends on the ultrasonic sensor, which means there shouldn't be any obstacles under the drone.
 
@@ -460,6 +404,58 @@ def LLC_PID_sin_slow_test(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_
 
     return P_now, pitch_cmd, roll_cmd, vz_cmd, yaw_rate_cmd
 
+
+def LLC_PD_sin_fast(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt):
+#####################################################################
+# control input vz depends on the ultrasonic sensor, which means there shouldn't be any obstacles under the drone.
+
+    # PID control gains for Vertical Velocity Command
+    # tune the height and yaw first, because they are decoupled!!!
+    # control input vz depends on the ultrasonic sensor, which means there shouldn't be any obstacles under the drone.
+
+    # height controller variables and gains
+    # see below
+    fwdfeedheight = 0.0           #forward feed coefficient 
+    Kp_height = 0.0              #pid proportional gain
+    # 1
+    Ki_height = 0.0               #pid integral gain
+    Kd_height = 0.0               #pid derivative gain
+    #pitch/forward velocity controller gains
+    fwdfeedpitch = 00.0           #forward feed coefficient 
+    Kp_pitch = 20.0               #pid proportional gain 
+    Ki_pitch = 0.0                #pid integral gain
+    Kd_pitch = 23.0                #pid derivative gain
+    #roll/lateral velocity controller gains
+    fwdfeedroll = 00.0            #forward feed coefficient 
+    Kp_roll = 38.0                 #pid proportional gain 
+    Ki_roll = 0.0                 #pid integral gain
+    Kd_roll = 23.0                 #pid derivative gain
+    #yaw rate controller gains
+    fwdfeedyaw = 20.0             #forward feed coefficient 
+    Kp_psi = 40.0                 #pid proportional gain
+    Ki_psi = 0.0                  #pid integral gain
+    Kd_psi = 0.0                  #pid derivative gain
+#####################################################################
+    feedforward_yaw = -1.0 * (sin(yaw_now) - sin(yaw_des))
+    yaw_proportion_term = feedforward_yaw - sin(yaw_rate)
+    yaw_rate_cmd = Kp_psi*yaw_proportion_term + fwdfeedyaw*feedforward_yaw 
+
+# change point_ref_0 to 1
+    velo_des_body = np.dot(np.transpose(Rot_Mat), np.reshape(point_ref_1[3:6, 0], (-1, 1)))
+    proportion_term = np.dot(np.transpose(Rot_Mat), np.reshape(point_ref_1[0:3, 0], (-1, 1)) - posi_now)
+    deri_term = np.dot(np.transpose(Rot_Mat), np.reshape(point_ref_1[3:6, 0], (-1, 1))) - velo_body
+
+    pitch_cmd = Kp_pitch*proportion_term[0, 0] + Kd_pitch*deri_term[0, 0] + fwdfeedpitch*velo_des_body[0, 0]
+    roll_cmd = Kp_roll*proportion_term[2, 0] + Kd_roll*deri_term[2, 0] + fwdfeedroll*velo_des_body[2, 0]
+
+    vz_cmd = point_ref_1[4, 0] / vz_max * 100.0 + Kp_height * (point_ref_1[1, 0] - posi_now[1, 0])
+
+    if yaw_des == np.pi:
+        yaw_rate_cmd = 1.0 * yaw_rate_cmd
+    else:
+        yaw_rate_cmd = -1.0 * yaw_rate_cmd
+
+    return P_now, pitch_cmd, roll_cmd, vz_cmd, yaw_rate_cmd
 
 if __name__ == '__main__':
     x = np.array([0, 2, 4, 6, 8, 10])
