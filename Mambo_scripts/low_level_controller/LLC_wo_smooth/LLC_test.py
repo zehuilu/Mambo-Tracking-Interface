@@ -30,7 +30,7 @@ if __name__ == '__main__':
     name_obstacles = "3"
 
     # if True, track static, otherwise, track dynamic
-    static_dynamic_obs_flag = False
+    static_dynamic_obs_flag = True
 
 
 #######################################################
@@ -40,9 +40,14 @@ if __name__ == '__main__':
     mamboAddr = mamboAddr_dict[str_mambo]
 
     if static_dynamic_obs_flag:
+        # for trial b, 0.5 m/s
+        #t_stop_dict = {"1":12.10, "2":22.60, "3":14.60, "4":12.60, "5":13.80}
+
         # v_max = 0.5 m/s
-        #t_stop_dict = {"1":12.10, "2":22.60, "3":13.60, "4":12.60} old RTD
-        t_stop_dict = {"1":11.80, "2":22.80, "3":12.80, "4":22.30, "5":12.80}
+        #t_stop_dict = {"1":11.80, "2":22.80, "3":12.80, "4":22.30, "5":12.80}
+
+        # v_max = 1.0 m/s
+        t_stop_dict = {"1":7.30, "2":22.80, "3":9.30, "4":22.30, "5":8.80}
         t_stop = t_stop_dict[name_obstacles]
     else:
         # No.1 ped + 1 static obstacle
@@ -171,7 +176,7 @@ if __name__ == '__main__':
                     point_ref_1 = hf.interpolate_traj(t_now + dt_traj + t_look_ahead, T, traj_ref)
 
                     P_now, pitch_cmd, roll_cmd, vz_cmd, yaw_rate_cmd = \
-                        hf.LLC_PID_sin_slow_test(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt)
+                        hf.LLC_PD_sin_fast(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt)
 
                     # record
                     states_history = hf.record_sysid(idx, states_history, t_now, posi_now, yaw_now, pitch_now, roll_now, yaw_rate_cmd, pitch_cmd, roll_cmd, vz_cmd)
@@ -204,6 +209,7 @@ if __name__ == '__main__':
 
         print("disconnect")
         mambo.disconnect()
+
 
         hf.save_csv_sysid(states_history, Directory_sysid)
 
