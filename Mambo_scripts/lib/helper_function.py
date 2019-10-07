@@ -424,6 +424,32 @@ def LLC_PD_sin_fast(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, R
     fwdfeedpitch = 00.0           #forward feed coefficient 
     Kp_pitch = 20.0               #pid proportional gain 
     Ki_pitch = 0.0                #pid integral gain
+    Kd_pitch = 30.0                #pid derivative gain
+    # kd was 30
+    #roll/lateral velocity controller gains
+    fwdfeedroll = 00.0            #forward feed coefficient 
+    Kp_roll = 38.0                 #pid proportional gain 
+    Ki_roll = 0.0                 #pid integral gain
+    Kd_roll = 38.0                 #pid derivative gain
+    # kd was 38
+    #yaw rate controller gains
+    fwdfeedyaw = 20.0             #forward feed coefficient 
+    Kp_psi = 40.0                 #pid proportional gain
+    Ki_psi = 0.0                  #pid integral gain
+    Kd_psi = 0.0                  #pid derivative gain
+#####################################################################
+    a = '''
+    # height controller variables and gains
+    # see below
+    fwdfeedheight = 0.0           #forward feed coefficient 
+    Kp_height = 0.0              #pid proportional gain
+    # 1
+    Ki_height = 0.0               #pid integral gain
+    Kd_height = 0.0               #pid derivative gain
+    #pitch/forward velocity controller gains
+    fwdfeedpitch = 00.0           #forward feed coefficient 
+    Kp_pitch = 20.0               #pid proportional gain 
+    Ki_pitch = 0.0                #pid integral gain
     Kd_pitch = 23.0                #pid derivative gain
     #roll/lateral velocity controller gains
     fwdfeedroll = 00.0            #forward feed coefficient 
@@ -435,7 +461,9 @@ def LLC_PD_sin_fast(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, R
     Kp_psi = 40.0                 #pid proportional gain
     Ki_psi = 0.0                  #pid integral gain
     Kd_psi = 0.0                  #pid derivative gain
+    '''
 #####################################################################
+
     feedforward_yaw = -1.0 * (sin(yaw_now) - sin(yaw_des))
     yaw_proportion_term = feedforward_yaw - sin(yaw_rate)
     yaw_rate_cmd = Kp_psi*yaw_proportion_term + fwdfeedyaw*feedforward_yaw 
