@@ -27,7 +27,7 @@ if __name__ == '__main__':
     #yaw_des = np.pi # in radians
 
     # No.x configuration
-    name_obstacles = "3"
+    name_obstacles = "4"
 
     # if True, track static, otherwise, track dynamic
     static_dynamic_obs_flag = True
@@ -47,12 +47,18 @@ if __name__ == '__main__':
         #t_stop_dict = {"1":11.80, "2":22.80, "3":12.80, "4":22.30, "5":12.80}
 
         # v_max = 1.0 m/s
-        t_stop_dict = {"1":7.30, "2":22.80, "3":9.30, "4":22.30, "5":8.80}
+        #t_stop_dict = {"1":7.30, "2":22.80, "3":9.80, "4":15.30, "5":8.80}
+
+        # trial b, v_max = 1.0 m/s
+        t_stop_dict = {"1":7.30, "2":22.80, "3":10.30, "4":14.30, "5":8.80}
+
         t_stop = t_stop_dict[name_obstacles]
+        
     else:
         # No.1 ped + 1 static obstacle
         # No.2 eight shape
         # No.3 circle
+        # v_max = 0.5 m/s
         t_stop_dict = {"1":17.30, "2":14.80, "3":13.80}
         t_stop = t_stop_dict[name_obstacles]
 
