@@ -27,7 +27,7 @@ if __name__ == '__main__':
     #yaw_des = np.pi # in radians
 
     # No.x configuration
-    name_obstacles = "2"
+    name_obstacles = "3"
 
     # if True, track static, otherwise, track dynamic
     static_dynamic_obs_flag = False
@@ -40,18 +40,32 @@ if __name__ == '__main__':
     mamboAddr = mamboAddr_dict[str_mambo]
 
     if static_dynamic_obs_flag:
-        # v_max = 1.0 m/s
-        #t_stop_dict = {"1":7.60, "2":9.10, "3":8.60, "4":7.60} old RTD
+        # for trial b, 0.5 m/s
+        #t_stop_dict = {"1":12.10, "2":22.60, "3":14.60, "4":12.60, "5":13.80}
 
         # v_max = 0.5 m/s
-        #t_stop_dict = {"1":12.10, "2":22.60, "3":13.60, "4":12.60} old RTD
-        t_stop_dict = {"1":12.60, "2":22.60, "3":14.10, "4":22.60, "5":13.10}
+        #t_stop_dict = {"1":11.80, "2":22.80, "3":12.80, "4":22.30, "5":12.80}
+
+        # v_max = 1.0 m/s
+        t_stop_dict = {"1":7.30, "2":22.80, "3":9.80, "4":15.30, "5":8.80}
+
+        # trial b, v_max = 1.0 m/s
+        #t_stop_dict = {"1":7.30, "2":22.80, "3":10.30, "4":14.30, "5":8.80}
+
         t_stop = t_stop_dict[name_obstacles]
+        
     else:
         # No.1 ped + 1 static obstacle
         # No.2 eight shape
         # No.3 circle
-        t_stop_dict = {"1":19.30, "2":14.30, "3":13.80}
+
+        # v_max = 0.5 m/s
+        #t_stop_dict = {"1":17.30, "2":14.80, "3":13.80}
+
+        # v_max = 1.0 m/s
+        t_stop_dict = {"1":17.30, "2":13.80, "3":10.30}
+
+
         t_stop = t_stop_dict[name_obstacles]
 
 
@@ -89,6 +103,8 @@ if __name__ == '__main__':
     # PID terms
     P_now = np.array([[0.0], [0.0], [0.0], [0.0]])
 
+    t_look_ahead = 0.2 # seconds
+
     dt_traj = 0.10
     yaw_prev = 0.5 # non-zero initial value
     posi_pre = np.array([[0.0], [0.0], [0.0]])
@@ -123,12 +139,19 @@ if __name__ == '__main__':
         print("Setup successed!")
         # get the state information
         print("sleeping")
-        #mambo.smart_sleep(1)
-        #mambo.ask_for_state_update()
         mambo.smart_sleep(1)
+        mambo.ask_for_state_update()
+        mambo.smart_sleep(1)
+
+        battery_0 = mambo.sensors.battery
+        print("The battery percentage is ", battery_0)
+
+        while battery_0 <= 62:
+            print("The battery voltage is low!!!")
+
         mambo.safe_takeoff(5)
         print("taking off!")
-        mambo.fly_direct(0, 0, 0, 0, 0.5)
+        mambo.fly_direct(0, 0, 0, 0, 1.0)
         print("zero input first!")
 #######################################################
 
@@ -162,10 +185,10 @@ if __name__ == '__main__':
                     # load the current and the next desired points
                     # 2-D numpy array, 6 by 1, px, py, pz, vx, vy, vz
                     point_ref_0 = hf.interpolate_traj(t_now, T, traj_ref)
-                    point_ref_1 = hf.interpolate_traj(t_now + dt_traj, T, traj_ref)
+                    point_ref_1 = hf.interpolate_traj(t_now + dt_traj + t_look_ahead, T, traj_ref)
 
                     P_now, pitch_cmd, roll_cmd, vz_cmd, yaw_rate_cmd = \
-                        hf.LLC_PID_sin_slow_test(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt)
+                        hf.LLC_PD_sin_fast(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt)
 
                     # record
                     states_history = hf.record_sysid(idx, states_history, t_now, posi_now, yaw_now, pitch_now, roll_now, yaw_rate_cmd, pitch_cmd, roll_cmd, vz_cmd)
@@ -199,7 +222,14 @@ if __name__ == '__main__':
         print("disconnect")
         mambo.disconnect()
 
+
         hf.save_csv_sysid(states_history, Directory_sysid)
+
+        battery_1 = mambo.sensors.battery
+        print("The battery percentage is ", battery_1)
+
+        battery_used = battery_0 - battery_1
+        print("The used battery percentage is", battery_used)
 
 
 #######################################################
