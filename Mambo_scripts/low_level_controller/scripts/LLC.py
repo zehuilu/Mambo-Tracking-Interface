@@ -15,63 +15,21 @@ import helper_function as hf
 
 if __name__ == '__main__':
 #######################################################
+
+
     # user define
-
-    # you will need to change this to the address of your mambo
-    # No.2 is Mambo_628236, No. 1 is roahm_mambo_1.
-    # select the mambo
-    str_mambo = "2"
-
     # if fly backward, choose pi, otherwise, choose 0.0
-    #yaw_des = 0.0 # in radians
-    yaw_des = np.pi # in radians
-
-    # No.x configuration
-    name_obstacles = "4"
-
-    # if True, track static, otherwise, track dynamic
-    static_dynamic_obs_flag = True
+    yaw_des = 0.0 # in radians
+    #yaw_des = np.pi # in radians
 
 
 #######################################################
     # you will need to change this to the address of your mambo
-    # No.2 is Mambo_628236, No. 1 is roahm_mambo_1.
-    mamboAddr_dict = {"1":"E0:14:4A:45:3D:CB", "2":"D0:3A:93:36:E6:21"}
-    mamboAddr = mamboAddr_dict[str_mambo]
-
-    if static_dynamic_obs_flag:
-        # for trial b, 0.5 m/s
-        #t_stop_dict = {"1":12.10, "2":22.60, "3":14.60, "4":12.60, "5":13.80}
-
-        # v_max = 0.5 m/s
-        t_stop_dict = {"1":11.80, "2":22.80, "3":12.80, "4":22.30, "5":12.80}
-
-        # v_max = 1.0 m/s
-        #t_stop_dict = {"1":7.30, "2":22.80, "3":9.80, "4":15.30, "5":8.80}
-
-        # trial b, v_max = 1.0 m/s
-        #t_stop_dict = {"1":7.30, "2":22.80, "3":10.30, "4":14.30, "5":8.80}
-
-        t_stop = t_stop_dict[name_obstacles]
-        
-    else:
-        # No.1 ped + 1 static obstacle
-        # No.2 eight shape
-        # No.3 circle
-
-        # v_max = 0.5 m/s
-        #t_stop_dict = {"1":17.30, "2":14.80, "3":13.80}
-
-        # v_max = 1.0 m/s
-        t_stop_dict = {"1":17.30, "2":13.80, "3":10.30}
-
-
-        t_stop = t_stop_dict[name_obstacles]
-
-
+    # Mambo_628236
+    mamboAddr = "D0:3A:93:36:E6:21"
 #######################################################
     HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
-    PORT = 10000        # Port to listen on (non-privileged ports are > 1023)
+    PORT = 9000        # Port to listen on (non-privileged ports are > 1023)
 
     # Create a TCP/IP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -120,6 +78,10 @@ if __name__ == '__main__':
     time_plot = []
     pv_plot = 0.0
     angle_and_cmd_plot = 0.0
+
+    csv_length_now = 1
+    csv_length_pre = -1
+    t_stop = 100.0 # is a large enough number
 
     hf.remove_traj_ref_lib(Directory_delete)
 
@@ -171,7 +133,7 @@ if __name__ == '__main__':
             posi_now, posi_pre, velo_now, Rot_Mat, yaw_now, pitch_now, roll_now, yaw_prev, velo_body, yaw_rate = \
             hf.compute_states(posi_now, posi_pre, ori_quat, yaw_prev, dt)
 
-            traj_ref, T, hover_flag = hf.update_csv(Directory_traj)
+            traj_ref, T, hover_flag, csv_length_now = hf.update_csv(Directory_traj)
 
             if not hover_flag:
                 #if hover_flag != hover_flag_pre:
@@ -184,6 +146,11 @@ if __name__ == '__main__':
                 print(t_now)
 
                 if True:
+                    if csv_length_now == csv_length_pre:
+                        t_stop = T[-1] - 1.9 # this is caused by a bug from RTD planner, Nov. 15, 2019
+
+                    csv_length_pre = csv_length_now
+
                     # load the current and the next desired points
                     # 2-D numpy array, 6 by 1, px, py, pz, vx, vy, vz
                     point_ref_0 = hf.interpolate_my(t_now, T, traj_ref, 'traj')
@@ -204,6 +171,7 @@ if __name__ == '__main__':
                 
             else:
                 print("Haven't generated csv file in MATLAB")
+                print("You can run planner in MATLAB to generate the csv files after 1 second")
                 mambo.fly_direct(0.0, 0.0, 0.0, 0.0, dt_traj)
 
             hover_flag_pre = hover_flag

@@ -26,7 +26,7 @@ def main_phasespace():
 ###########################################
     # about socket
     HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
-    PORT = 10000        # Port to listen on (non-privileged ports are > 1023)
+    PORT = 9000        # Port to listen on (non-privileged ports are > 1023)
     server_address = (HOST, PORT)
 
     # Create a TCP/IP socket
