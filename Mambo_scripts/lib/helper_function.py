@@ -65,8 +65,8 @@ def import_csv(FileName):
 # if offset_flag is True, use the original reference height, it's only used in the end
 # if offset_flag is False, substract 0.1 meters to the height, it's used in the loop
     Z = np.genfromtxt(FileName, dtype=float, delimiter=',')
-    print("checkpoint for import_csv")
-    print(Z.shape)
+    #print("checkpoint for import_csv")
+    #print(Z.shape)
     #print(Z)
     #if Z.shape[0] == 0:
     T = Z[0, :]
@@ -80,6 +80,7 @@ def update_csv(Directory):
 # assume traj_ref has the whole time trajectory information
 # assume traj_ref only has positions and velocities
     csv_file_list = sorted(glob.glob(Directory + '*.csv'), key=os.path.getmtime)
+    
     if not csv_file_list:
         hover_flag = True
         traj_ref = np.zeros((6, 2), dtype=float)
@@ -91,7 +92,9 @@ def update_csv(Directory):
             traj_ref, T = import_csv(csv_file_list[-2])
             print("The lastest one is empty!!!")
         hover_flag = False
-    return traj_ref, T, hover_flag
+
+    csv_length_now = np.shape(traj_ref)[1]
+    return traj_ref, T, hover_flag, csv_length_now
 
 
 def record_sysid(idx, states_history_mocap, states_history_cmd, yaw_rate_cmd, pitch_cmd, roll_cmd, vz_cmd, t0, data_for_csv):
