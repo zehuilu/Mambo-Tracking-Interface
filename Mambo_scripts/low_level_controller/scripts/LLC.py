@@ -147,7 +147,8 @@ if __name__ == '__main__':
 
                 if True:
                     if csv_length_now == csv_length_pre:
-                        t_stop = T[-1] - 1.9 # this is caused by a bug from RTD planner, Nov. 15, 2019
+                        #t_stop = T[-1] - 1.9 # this is caused by a bug from RTD planner, Nov. 15, 2019
+                        t_stop = T[-1]       # bug fixed, Nov. 21, 2019
 
                     csv_length_pre = csv_length_now
 
