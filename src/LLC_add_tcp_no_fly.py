@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/roahmlab/Mambo_scripts/lib')
+sys.path.append('/home/roahmlab/RTD_Mambo_interface/lib')
 
 from pyparrot.Minidrone import Mambo
 import socket
@@ -38,16 +38,10 @@ if __name__ == '__main__':
     server_address = (HOST, PORT)
     print("connecting to", server_address)
     sock.connect(server_address)
-    
-    # make my mambo object
-    # remember to set True/False for the wifi depending on if you are using the wifi or the BLE to connect
-    mambo = Mambo(mamboAddr, use_wifi=False)
-    print("trying to connect")
-    success = mambo.connect(num_retries=3)
-    print("connected: %s" % success)
 
 
-    # Sending real-time positions and velocities to MATLAB via UDP
+#####################
+###############NEW###
     HOST_matlab = '127.0.0.1'
     PORT_matlab = 11000
     # Connect the socket to the port where the server is listening
@@ -56,11 +50,20 @@ if __name__ == '__main__':
     # Create a UDP socket
     sock_matlab = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
+######################
+
+    
+    # make my mambo object
+    # remember to set True/False for the wifi depending on if you are using the wifi or the BLE to connect
+    mambo = Mambo(mamboAddr, use_wifi=False)
+    print("trying to connect")
+    success = mambo.connect(num_retries=3)
+    print("connected: %s" % success)
 #######################################################
     # define some variables
-    Directory_sysid = '/home/roahmlab/Mambo_scripts/low_level_controller/sysid_data/'
-    Directory_traj = '/home/roahmlab/Mambo_scripts/low_level_controller/traj_lib/'
-    Directory_delete = '/home/roahmlab/Mambo_scripts/low_level_controller/traj_lib/*'
+    Directory_sysid = '/home/roahmlab/RTD_Mambo_interface/sysid_data/'
+    Directory_traj = '/home/roahmlab/RTD_Mambo_interface/traj_lib/'
+    Directory_delete = '/home/roahmlab/RTD_Mambo_interface/traj_lib/*'
 
     tilt_max = radians(25.0) # in degrees to radians
     vz_max = 2.0 # in m/s
@@ -122,20 +125,13 @@ if __name__ == '__main__':
         battery_0 = mambo.sensors.battery
         print("The battery percentage is ", battery_0)
 
-        while battery_0 <= 62:
-            print("The battery voltage is low!!!")
-
-        mambo.safe_takeoff(5)
-        print("taking off!")
-        mambo.fly_direct(0, 0, 0, 0, 1.0)
-        print("zero input first!")
 #######################################################
 
         idx = 0
 
 # Remember to change the total time!!!!!!!!!!!!!!!!!
 
-        while t_now < t_stop:
+        while True:
             t0 = time.time()
 
             # get states
@@ -146,64 +142,24 @@ if __name__ == '__main__':
             hf.compute_states(posi_now, posi_pre, ori_quat, yaw_prev, dt)
 
 
-            # send positions and velocities to MATLAB via UDP
+            ########################
             msg = struct.pack('dddddd', posi_now[0,0], posi_now[1,0], posi_now[2,0], velo_now[0,0], velo_now[1,0], velo_now[2,0])
-            #data_test = struct.unpack('dddddd', msg)
+            data_test = struct.unpack('dddddd', msg)
             print("sending message to matlab")
-            #print(msg)
-            #print(data_test)
+            print(msg)
+            print(data_test)
             sock_matlab.sendto(msg, server_address_matlab)
 
+            ########################
 
-            traj_ref, T, hover_flag, csv_length_now = hf.update_csv(Directory_traj)
 
-            if not hover_flag:
-                #if hover_flag != hover_flag_pre:
-                if (hover_flag == False) & (hover_flag_pre == True):
-                    t_start = t0
-                    idx = 0
 
-                t_now = t0 - t_start
-                print("Total Time")
-                print(t_now)
+            #mambo.fly_direct(0.0, 0.0, 0.0, 0.0, dt_traj)
 
-                if True:
-                    if csv_length_now == csv_length_pre:
-                        #t_stop = T[-1] - 1.9 # this is caused by a bug from RTD planner, Nov. 15, 2019
-                        t_stop = T[-1]       # bug fixed, Nov. 21, 2019
 
-                    csv_length_pre = csv_length_now
 
-                    # load the current and the next desired points
-                    # 2-D numpy array, 6 by 1, px, py, pz, vx, vy, vz
-                    point_ref_0 = hf.interpolate_my(t_now, T, traj_ref, 'traj')
-                    point_ref_1 = hf.interpolate_my(t_now + dt_traj + t_look_ahead, T, traj_ref, 'traj')
-
-                    P_now, pitch_cmd, roll_cmd, vz_cmd, yaw_rate_cmd = hf.LLC_PD(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P_now, velo_body, yaw_rate, vz_max, dt)
-
-                    # record
-                    states_history_mocap, states_history_cmd = hf.record_sysid(idx, states_history_mocap, states_history_cmd, yaw_rate_cmd, pitch_cmd, roll_cmd, vz_cmd, t0, data_for_csv)
-
-                    # p, v, yaw, pitch, roll, yaw, pitch, roll, vz
-                    time_plot, pv_plot, angle_and_cmd_plot = hf.record_states_plot(idx, t_now, posi_now, velo_now, yaw_now, pitch_now, roll_now, yaw_rate_cmd, pitch_cmd, roll_cmd, vz_cmd, time_plot, pv_plot, angle_and_cmd_plot)
-                    # send commands
-                    #mambo.smart_sleep(dt_traj)
-                    mambo.fly_direct(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, dt_traj)
-                else:
-                    mambo.fly_direct(0.0, 0.0, 0.0, 0.0, dt_traj)
-                
-            else:
-                print("Haven't generated csv file in MATLAB")
-                print("You can run planner in MATLAB to generate the csv files after 1 second")
-                mambo.fly_direct(0.0, 0.0, 0.0, 0.0, dt_traj)
-
-            hover_flag_pre = hover_flag
             t1 = time.time()
             dt = t1 - t0
-            print("time interval for fly command")
-            print(dt)
-            print("current time")
-            print(t_now)
             idx += 1
 
 
@@ -258,8 +214,7 @@ if __name__ == '__main__':
         X = np.array(pz_list)
         Y = np.array(px_list)
         Z = np.array(py_list)
-        max_range = np.array([X.max()-X.min(), \
-            Y.max()-Y.min(), Z.max()-Z.min()]).max() / 2.0
+        max_range = np.array([X.max()-X.min(), Y.max()-Y.min(), Z.max()-Z.min()]).max() / 2.0
         mid_x = (X.max() + X.min()) * 0.5
         mid_y = (Y.max() + Y.min()) * 0.5
         mid_z = (Z.max() + Z.min()) * 0.5

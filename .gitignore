@@ -1,0 +1,10 @@
+*.m~
+*.pdf
+*.jpg
+*.png
+*.DS_Store
+*.log
+*.log*
+/.vscode/*
+/lib/owl.py
+/sysid_data/*
