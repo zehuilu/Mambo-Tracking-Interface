@@ -8,3 +8,4 @@
 /.vscode/*
 /lib/owl.py
 /sysid_data/*
+/traj_csv_files/*

@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
+import os
 import sys
-sys.path.append('/home/roahmlab/RTD_Mambo_interface/lib')
+sys.path.append(os.getcwd()+'/lib')
 
 from owl import Context, Type
 import socket

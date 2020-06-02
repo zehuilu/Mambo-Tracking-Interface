@@ -1,5 +1,7 @@
+# -*- coding: UTF-8 -*-
+import os
 import sys
-sys.path.append('/home/roahmlab/RTD_Mambo_interface/lib')
+sys.path.append(os.getcwd()+'/lib')
 
 from pyparrot.Minidrone import Mambo
 import socket
@@ -58,9 +60,9 @@ if __name__ == '__main__':
 
 #######################################################
     # define some variables
-    Directory_sysid = '/home/roahmlab/RTD_Mambo_interface/sysid_data/'
-    Directory_traj = '/home/roahmlab/RTD_Mambo_interface/traj_csv_files/'
-    Directory_delete = '/home/roahmlab/RTD_Mambo_interface/traj_csv_files/*'
+    Directory_sysid = os.getcwd() + '/sysid_data/'
+    Directory_traj = os.getcwd() + '/traj_csv_files/'
+    Directory_delete = os.getcwd() + '/traj_csv_files/*'
 
     tilt_max = radians(25.0) # in degrees to radians
     vz_max = 2.0 # in m/s
