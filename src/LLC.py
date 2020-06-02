@@ -59,8 +59,8 @@ if __name__ == '__main__':
 #######################################################
     # define some variables
     Directory_sysid = '/home/roahmlab/RTD_Mambo_interface/sysid_data/'
-    Directory_traj = '/home/roahmlab/RTD_Mambo_interface/traj_lib/'
-    Directory_delete = '/home/roahmlab/RTD_Mambo_interface/traj_lib/*'
+    Directory_traj = '/home/roahmlab/RTD_Mambo_interface/traj_csv_files/'
+    Directory_delete = '/home/roahmlab/RTD_Mambo_interface/traj_csv_files/*'
 
     tilt_max = radians(25.0) # in degrees to radians
     vz_max = 2.0 # in m/s
