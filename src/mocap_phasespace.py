@@ -17,14 +17,14 @@ def main_phasespace(config_file_name):
     config_data = json.load(json_file)
 
     # connect to NETGEAR48 and it'l be this IP
-    address = config_data['PHASESPACE']['IP_MOCAP_SERVER']
+    address = config_data["PHASESPACE"]["IP_MOCAP_SERVER"]
     owl = Context()
     owl.open(address)
     owl.initialize()
 
     # how often the mocap system will send a "frame" that contains the body location
     # you can play with this, saturates the router around 1 kHz
-    owl.frequency(int(config_data['PHASESPACE']['FREQUENCY_MOCAP']))
+    owl.frequency(int(config_data["PHASESPACE"]["FREQUENCY_MOCAP"]))
     # once you hit this point, the program will connect with the receiver and the lights should turn on
     owl.streaming(1)
 
@@ -32,9 +32,9 @@ def main_phasespace(config_file_name):
 ###########################################
     # about socket
     # Standard loopback interface address (localhost)
-    HOST = config_data['PHASESPACE']['IP_STATES_ESTIMATION']
+    HOST = config_data["PHASESPACE"]["IP_STATES_ESTIMATION"]
     # Port to listen on (non-privileged ports are > 1023)
-    PORT = int(config_data['PHASESPACE']['PORT_STATES_ESTIMATION'])
+    PORT = int(config_data["PHASESPACE"]["PORT_STATES_ESTIMATION"])
     server_address = (HOST, PORT)
 
     # Create a TCP/IP socket
@@ -64,7 +64,7 @@ def main_phasespace(config_file_name):
         elif event.type_id == Type.FRAME:
             if "rigids" in event:
                 t_now = time.time()
-                r = event.rigids[int(config_data['PHASESPACE']['INDEX_MAMBO'])]
+                r = event.rigids[int(config_data["PHASESPACE"]["INDEX_MAMBO"])]
                 if r.cond > 0:
                     #print(r.pose)
                     

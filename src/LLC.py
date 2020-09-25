@@ -14,6 +14,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import struct
 
 import helper_function as hf
+import csv_helper_module as csv_helper
 
 
 if __name__ == '__main__':
@@ -97,7 +98,7 @@ if __name__ == '__main__':
     csv_length_pre = -1
     t_stop = 100.0 # is a large enough number
 
-    hf.remove_traj_ref_lib(Directory_delete)
+    csv_helper.remove_traj_ref_lib(Directory_delete)
 
 # control input vz depends on the ultrasonic sensor, which means there shouldn't be any obstacles under the drone.
 #######################################################
@@ -157,7 +158,7 @@ if __name__ == '__main__':
             sock_matlab.sendto(msg, server_address_matlab)
 
 
-            traj_ref, T, hover_flag, csv_length_now = hf.update_csv(Directory_traj)
+            traj_ref, T, hover_flag, csv_length_now = csv_helper.update_csv(Directory_traj)
 
             if not hover_flag:
                 #if hover_flag != hover_flag_pre:

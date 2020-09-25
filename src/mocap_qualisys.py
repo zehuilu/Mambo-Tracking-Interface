@@ -34,9 +34,9 @@ def publisher_tcp_main(config_data):
     """
 
     # IP for publisher
-    HOST_TCP = config_data['QUALISYS']['IP_STATES_ESTIMATION']
+    HOST_TCP = config_data["QUALISYS"]["IP_STATES_ESTIMATION"]
     # Port for publisher
-    PORT_TCP = int(config_data['QUALISYS']['PORT_STATES_ESTIMATION'])
+    PORT_TCP = int(config_data["QUALISYS"]["PORT_STATES_ESTIMATION"])
 
     server_address_tcp = (HOST_TCP, PORT_TCP)
     # Create a TCP/IP socket
@@ -46,12 +46,13 @@ def publisher_tcp_main(config_data):
 
 
 async def main(config_file_name):
+    """ Main function """
     # Read the configuration from the json file
     json_file = open(config_file_name)
     config_data = json.load(json_file)
 
     # IP address for the mocap server
-    IP_server = config_data['QUALISYS']['IP_MOCAP_SERVER']
+    IP_server = config_data["QUALISYS"]["IP_MOCAP_SERVER"]
 
     # Connect to qtm
     connection = await qtm.connect(IP_server)
@@ -71,7 +72,7 @@ async def main(config_file_name):
     # parser for mocap rigid bodies indexing
     body_index = create_body_index(xml_string)
     # the one we want to access
-    wanted_body = config_data['QUALISYS']['NAME_SINGLE_BODY']
+    wanted_body = config_data["QUALISYS"]["NAME_SINGLE_BODY"]
 
     # Create a UDP socket for data streaming
     sock_tcp, server_address_tcp = publisher_tcp_main(config_data)

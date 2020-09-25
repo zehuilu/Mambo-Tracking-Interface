@@ -1,18 +1,9 @@
 #!/usr/bin/env python3
+import os
 import numpy as np
 from scipy import interpolate
 import transforms3d
-import os
-import glob
-import csv
-import time
 from math import sin, cos
-
-
-def remove_traj_ref_lib(Directory):
-    files = glob.glob(Directory)
-    for f in files:
-        os.remove(f)
 
 
 def get_states_mocap(sock, mambo):
@@ -57,44 +48,6 @@ def compute_states(posi_now, posi_pre, ori_quat, yaw_prev, dt):
     # Rotate into Body-fixed Frame
     velo_body = np.dot(np.linalg.pinv(Rot_Mat), velo_now)
     return posi_now, posi_pre, velo_now, Rot_Mat, yaw_now, pitch_now, roll_now, yaw_prev, velo_body, yaw_rate
-
-
-def import_csv(FileName):
-# import csv file from a file folder
-# only export desired positions and velocities
-# if offset_flag is True, use the original reference height, it's only used in the end
-# if offset_flag is False, substract 0.1 meters to the height, it's used in the loop
-    Z = np.genfromtxt(FileName, dtype=float, delimiter=',')
-    #print("checkpoint for import_csv")
-    #print(Z.shape)
-    #print(Z)
-    #if Z.shape[0] == 0:
-    T = Z[0, :]
-    traj_ref = Z[1:7, :]
-
-    return traj_ref, T
-
-
-def update_csv(Directory):
-# update the desired trajectory from csv file folder in 10 Hz
-# assume traj_ref has the whole time trajectory information
-# assume traj_ref only has positions and velocities
-    csv_file_list = sorted(glob.glob(Directory + '*.csv'), key=os.path.getmtime)
-    
-    if not csv_file_list:
-        hover_flag = True
-        traj_ref = np.zeros((6, 2), dtype=float)
-        T = np.array([0.0, 1.0], dtype=float)
-    else:
-        try:
-            traj_ref, T = import_csv(csv_file_list[-1])
-        except:
-            traj_ref, T = import_csv(csv_file_list[-2])
-            print("The lastest one is empty!!!")
-        hover_flag = False
-
-    csv_length_now = np.shape(traj_ref)[1]
-    return traj_ref, T, hover_flag, csv_length_now
 
 
 def record_sysid(idx, states_history_mocap, states_history_cmd, yaw_rate_cmd, pitch_cmd, roll_cmd, vz_cmd, t0, data_for_csv):
@@ -243,15 +196,3 @@ def LLC_PD(idx, posi_now, point_ref_0, point_ref_1, yaw_now, yaw_des, Rot_Mat, P
 
     return P_now, pitch_cmd, roll_cmd, vz_cmd, yaw_rate_cmd
 
-
-
-if __name__ == '__main__':
-    x = np.array([0, 2, 4, 6, 8, 10])
-    y = np.array([[0, 1, 2, 3, 4, 5], [0, -1, -2, -3, -4, -5], [10, 20, 30, 40, 50, 60], [-10, -20, -30, -40, -50, -60], [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]])
-    x_queue = 1
-    print(x)
-    print(y)
-    y_queue = interpolate_my(x_queue, x, y, 'traj')
-    print(y_queue)
-
-    

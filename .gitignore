@@ -6,6 +6,7 @@
 *.DS_Store
 *.log
 *.log*
+*.pyc
 /.vscode/*
 /lib/owl.py
 /sysid_data/*

@@ -3,10 +3,10 @@
         "IP_MOCAP_SERVER": "192.168.1.11",
         "IP_STATES_ESTIMATION": "127.0.0.1",
         "PORT_STATES_ESTIMATION": "9000",
-        "FREQUENCY_MOCAP": "120",
-        "INDEX_MAMBO": "1",
         "DATA_NUMBERS_STATES_ESTIMATION": "8",
-        "DATA_BYTES_MAX": "4096"
+        "DATA_BYTES_MAX": "4096",
+        "INDEX_MAMBO": "1",
+        "FREQUENCY_MOCAP": "120"
     },
 
     "QUALISYS": {
@@ -26,6 +26,7 @@
     },
 
     "LOW_LEVEL_CONTROLLER": {
+        "YAW_DES": "0.0",
         "TIME_LOOK_AHEAD": "0.2",
         "TIME_STEP": "0.1",
         "FWDFEED_HEIGHT": "0.0",
@@ -44,7 +45,10 @@
         "KP_YAW": "40.0",
         "KI_YAW": "0.0",
         "KD_YAW": "0.0"
+    },
 
-
+    "RTD_MATLAB": {
+        "IP_MATLAB": "127.0.0.1",
+        "PORT_MATLAB": "11000"
     }
 }
