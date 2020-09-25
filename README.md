@@ -51,17 +51,17 @@ Sometimes you may want to shut down the current mocap.py and LLC.py and rerun th
 
 Open Terminal 1, type
 ```
-cd <MainDirectory>/src
-python3 mocap.py
+cd <MAIN_DIRECTORY>
+python3 src/mocap_phasespace.py
 ```
 
 Open Terminal 2, type
 ```
-cd <MainDirectory>/src
-python3 LLC.py
+cd <MAIN_DIRECTORY>
+python3 src/LLC.py
 ```
 
-After you see the related message in Terminal 2, run the quadrotor_RTD planner via MATLAB.
+After you see the reminder message in Terminal 2, run the quadrotor_RTD planner via MATLAB.
 
 
 

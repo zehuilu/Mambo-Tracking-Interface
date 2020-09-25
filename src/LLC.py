@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+#!/usr/bin/env python3
 import os
 import sys
 sys.path.append(os.getcwd()+'/lib')

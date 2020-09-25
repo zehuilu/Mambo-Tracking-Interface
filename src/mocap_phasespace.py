@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+#!/usr/bin/env python3
 import os
 import sys
 sys.path.append(os.getcwd()+'/lib')
@@ -8,26 +8,33 @@ import socket
 import numpy as np
 import transforms3d
 import time
+import json
 
-def main_phasespace():
+
+def main_phasespace(config_file_name):
+    # Read the configuration from the json file
+    json_file = open(config_file_name)
+    config_data = json.load(json_file)
 
     # connect to NETGEAR48 and it'l be this IP
-    address = "192.168.1.11"
+    address = config_data['PHASESPACE']['IP_MOCAP_SERVER']
     owl = Context()
     owl.open(address)
     owl.initialize()
 
     # how often the mocap system will send a "frame" that contains the body location
     # you can play with this, saturates the router around 1 kHz
-    owl.frequency(120)
+    owl.frequency(int(config_data['PHASESPACE']['FREQUENCY_MOCAP']))
     # once you hit this point, the program will connect with the receiver and the lights should turn on
     owl.streaming(1)
 
 
 ###########################################
     # about socket
-    HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
-    PORT = 9000        # Port to listen on (non-privileged ports are > 1023)
+    # Standard loopback interface address (localhost)
+    HOST = config_data['PHASESPACE']['IP_STATES_ESTIMATION']
+    # Port to listen on (non-privileged ports are > 1023)
+    PORT = int(config_data['PHASESPACE']['PORT_STATES_ESTIMATION'])
     server_address = (HOST, PORT)
 
     # Create a TCP/IP socket
@@ -57,10 +64,10 @@ def main_phasespace():
         elif event.type_id == Type.FRAME:
             if "rigids" in event:
                 t_now = time.time()
-                r = event.rigids[1]
+                r = event.rigids[int(config_data['PHASESPACE']['INDEX_MAMBO'])]
                 if r.cond > 0:
                     #print(r.pose)
-                        
+                    
                     # position in phasespace frame
                     px = r.pose[0] / 1000.0 # x in phasespace
                     py = r.pose[1] / 1000.0 # y in phasespace
@@ -82,10 +89,10 @@ def main_phasespace():
 
     print("not open or not initialized!")
 
-
     owl.done()
     owl.close()
 
 
 if __name__ == "__main__":
-    main_phasespace()
+    config_file_name = 'config.json'
+    main_phasespace(config_file_name)

@@ -1,0 +1,50 @@
+{
+    "PHASESPACE": {
+        "IP_MOCAP_SERVER": "192.168.1.11",
+        "IP_STATES_ESTIMATION": "127.0.0.1",
+        "PORT_STATES_ESTIMATION": "9000",
+        "FREQUENCY_MOCAP": "120",
+        "INDEX_MAMBO": "1",
+        "DATA_NUMBERS_STATES_ESTIMATION": "8",
+        "DATA_BYTES_MAX": "4096"
+    },
+
+    "QUALISYS": {
+        "IP_MOCAP_SERVER": "192.168.254.1",
+        "IP_STATES_ESTIMATION": "127.0.0.1",
+        "PORT_STATES_ESTIMATION": "9000",
+        "DATA_NUMBERS_STATES_ESTIMATION": "8",
+        "DATA_BYTES_MAX": "4096",
+        "NAME_SINGLE_BODY": "mambo_01"
+    },
+
+    "MAMBO": {
+        "BLUETOOTH_ADDRESS": "D0:3A:93:36:E6:21",
+        "TILT_MAX": "25.0",
+        "VERTICAL_SPEED_MAX": "2.0",
+        "YAW_RATE_MAX": "3.14"
+    },
+
+    "LOW_LEVEL_CONTROLLER": {
+        "TIME_LOOK_AHEAD": "0.2",
+        "TIME_STEP": "0.1",
+        "FWDFEED_HEIGHT": "0.0",
+        "KP_HEIGHT": "0.0",
+        "KI_HEIGHT": "0.0",
+        "KD_HEIGHT": "0.0",
+        "FWDFEED_PITCH": "0.0",
+        "KP_PITCH": "20.0",
+        "KI_PITCH": "0.0",
+        "KD_PITCH": "30.0",
+        "FWDFEED_ROLL": "0.0",
+        "KP_ROLL": "38.0",
+        "KI_ROLL": "0.0",
+        "KD_ROLL": "38.0",
+        "FWDFEED_YAW": "20.0",
+        "KP_YAW": "40.0",
+        "KI_YAW": "0.0",
+        "KD_YAW": "0.0"
+
+
+    }
+}
