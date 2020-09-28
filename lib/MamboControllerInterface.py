@@ -18,7 +18,7 @@ import csv_helper_module as csv_helper
 from interpolate_traj import interpolate_traj
 
 
-class MamboControllerInterface:
+class MamboControllerInterface(object):
     def __init__(self, config_file_name, mocap_string):
         """
         Constructor

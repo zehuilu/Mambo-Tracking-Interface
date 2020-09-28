@@ -2,7 +2,7 @@
 import numpy as np
 import scipy.ndimage as nd
 
-class generate_spline_by_peak_speed(object):
+class SplineByPeakSpeed(object):
     def __init__(self, p_0, v_0, a_0, v_peak, t_peak, t_total, dt):
         # all numpy array, make sure float
         self.p_0 = p_0.astype(float) # 3*1
@@ -166,3 +166,22 @@ def make_spline(T_in, p_0, v_0, a_0, a, b, c):
     Z_out = np.concatenate((px,py,pz,vx,vy,vz,ax,ay,az,jx,jy,jz,sx,sy,sz), axis=0)
     return Z_out
 
+
+if __name__ == '__main__':
+    p_0 = np.array([[1.0], [1.0], [1.0]])
+    v_0 = np.array([[0.0], [0.0], [0.0]])
+    a_0 = np.array([[0.0], [0.0], [0.0]])
+    v_peak = np.array([[0.5], [0.5], [0.5]])
+    t_peak = 1.5
+    t_total = 3.0
+    dt = 0.1
+
+    # initialize the class
+    spline_class = SplineByPeakSpeed(p_0, v_0, a_0, v_peak, t_peak, t_total, dt)
+    # generate the spline trajectory
+    T, traj = spline_class.do_calculation()
+
+    print("This is T.")
+    print(T)
+    print("This is traj.")
+    print(traj)

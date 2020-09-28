@@ -12,4 +12,4 @@
 /sysid_data/*
 /traj_csv_files/*
 *.csv
-lib/__pycache__/*
+/lib/__pycache__/*
