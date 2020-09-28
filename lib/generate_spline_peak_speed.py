@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+#!/usr/bin/env python3
 import numpy as np
 import scipy.ndimage as nd
 

@@ -5,7 +5,6 @@ sys.path.append(os.getcwd()+'/lib')
 import socket
 import time
 import json
-import time
 import struct
 import transforms3d
 import matplotlib
@@ -20,7 +19,7 @@ from interpolate_traj import interpolate_traj
 
 
 class MamboControllerInterface:
-    def __init__(self, config_file_name):
+    def __init__(self, config_file_name, mocap_string):
         """
         Constructor
         """
@@ -28,12 +27,15 @@ class MamboControllerInterface:
         # Read the configuration from the json file
         json_file = open(config_file_name)
         self.config_data = json.load(json_file)
+        self.mocap_string = mocap_string
+        self.flag_tuning_LLC = bool(self.config_data["FLAG_TUNING_LLC"])
 
         # desired yaw angle, if fly backward, choose pi; otherwise, choose 0.0, in radians
         self.yaw_des = float(self.config_data["LOW_LEVEL_CONTROLLER"]["YAW_DES"])
 
         # make my mambo object
         # remember to set True/False for the wifi depending on if you are using the wifi or the BLE to connect
+    
         self.mambo = Mambo(self.config_data["MAMBO"]["BLUETOOTH_ADDRESS"], use_wifi=False)
         self.flag_mambo_connection = self.mambo.connect(num_retries=3)
         print("Mambo connected: %s" % self.flag_mambo_connection)
@@ -41,16 +43,13 @@ class MamboControllerInterface:
         # Create a TCP/IP socket
         self.sock_states = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # Connect the socket to the port where the server is listening
-        server_address_states = (self.config_data["QUALISYS"]["IP_STATES_ESTIMATION"], int(self.config_data["QUALISYS"]["PORT_STATES_ESTIMATION"]))
+        server_address_states = (self.config_data[self.mocap_string]["IP_STATES_ESTIMATION"], int(self.config_data[self.mocap_string]["PORT_STATES_ESTIMATION"]))
         print("connecting to", server_address_states)
         self.sock_states.connect(server_address_states)
         # maximum bytes received from TCP socket
-        self.data_bytes_max = int(self.config_data["QUALISYS"]["DATA_BYTES_MAX"])
+        self.data_bytes_max = int(self.config_data[self.mocap_string]["DATA_BYTES_MAX"])
         # how many numbers the TCP socket is sending
-        self.data_number_integer = int(self.config_data['QUALISYS']['DATA_NUMBERS_STATES_ESTIMATION'])
-
-
-
+        self.data_number_integer = int(self.config_data[self.mocap_string]["DATA_NUMBERS_STATES_ESTIMATION"])
 
         # Sending real-time positions and velocities to MATLAB via UDP
         # Connect the socket to the port where the server is listening
@@ -59,16 +58,16 @@ class MamboControllerInterface:
         self.sock_matlab = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         # define the path for system id and csv trajectories
-        self.directory_sysid = os.getcwd() + '/sysid_data/'
-        self.directory_traj = os.getcwd() + '/traj_csv_files/'
-        self.directory_delete = os.getcwd() + '/traj_csv_files/*'
+        self.directory_sysid = os.getcwd() + self.config_data["DIRECTORY_SYSID"]
+        self.directory_traj = os.getcwd() + self.config_data["DIRECTORY_TRAJ"]
+        self.directory_delete = os.getcwd() + self.config_data["DIRECTORY_TRAJ"] + "*"
 
         # define max tilt angles, vertical velocity, and yaw rate
-        self.tilt_max = radians(float(self.config_data["MAMBO"]["TILT_MAX"])) # in degrees to radians
+        self.tilt_max = float(self.config_data["MAMBO"]["TILT_MAX"]) # in degrees
         self.vz_max = float(self.config_data["MAMBO"]["VERTICAL_SPEED_MAX"]) # in m/s
         self.yaw_rate_max = float(self.config_data["MAMBO"]["YAW_RATE_MAX"]) # in radians/sec
 
-        # initialize more variables
+        # initialize some variables
 
         # initialize the current position and yaw angle
         self.t_look_ahead = float(self.config_data["LOW_LEVEL_CONTROLLER"]["TIME_LOOK_AHEAD"])
@@ -127,9 +126,10 @@ class MamboControllerInterface:
         self.Ki_psi = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KI_YAW"])
         self.Kd_psi = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KD_YAW"])
 
-
-        # remove all the current file under this directory
-        csv_helper.remove_traj_ref_lib(self.directory_delete)
+        # if flag==1, don't remove current csv files for tuning LLC
+        # if flag==0, remove all the current file under this directory
+        if not self.flag_tuning_LLC:
+            csv_helper.remove_traj_ref_lib(self.directory_delete)
 
 
     def run_LLC(self):
@@ -142,7 +142,7 @@ class MamboControllerInterface:
             print("calibrated the Mambo")
             # set the maximum tilt angle in degrees
             # tilt_max is in radians!!!
-            result_set_tilt = self.mambo.set_max_tilt(degrees(self.tilt_max))
+            result_set_tilt = self.mambo.set_max_tilt(self.tilt_max)
             print("set the maximum tilt angle")
             # set the maximum vertical speed in m/s
             result_set_vz = self.mambo.set_max_vertical_speed(self.vz_max)
@@ -152,9 +152,9 @@ class MamboControllerInterface:
             print("Setup successed!")
             # get the state information
             print("sleeping")
-            self.mambo.smart_sleep(1)
+            self.mambo.smart_sleep(0.1)
             self.mambo.ask_for_state_update()
-            self.mambo.smart_sleep(1)
+            # self.mambo.smart_sleep(0.5)
 
             self.battery_ini = self.mambo.sensors.battery
             print("The battery percentage is ", self.battery_ini)
@@ -177,7 +177,6 @@ class MamboControllerInterface:
                 data_for_csv = self.get_states_mocap()
                 # compute some variables
                 self.compute_states()
-
 
                 # send positions and velocities to MATLAB via UDP
                 msg = struct.pack('dddddd', self.posi_now[0,0], self.posi_now[1,0], self.posi_now[2,0], self.velo_now[0,0], self.velo_now[1,0], self.velo_now[2,0])
@@ -538,6 +537,9 @@ class MamboControllerInterface:
 
 
 if __name__ == "__main__":
-    config_file_name = 'config.json'
+    config_file_name = "config.json"
+    mocap_string = "QUALISYS"
 
+    Controller = MamboControllerInterface(config_file_name, mocap_string)
+    Controller.run_LLC()
     

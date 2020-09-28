@@ -49,8 +49,13 @@
 
     "RTD_MATLAB": {
         "IP_MATLAB": "127.0.0.1",
-        "PORT_MATLAB": "11000"
+        "PORT_MATLAB": "11000",
+        "DATA_NUMBERS_MATLAB": "6"
     },
 
-    "FLAG_PLOT": "1"
+    "FLAG_TUNING_LLC": "0",
+    "FLAG_PLOT": "1",
+    "DIRECTORY_SYSID": "/sysid_data/",
+    "DIRECTORY_TRAJ": "/traj_csv_files/",
+    "": ""
 }
