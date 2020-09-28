@@ -4,6 +4,7 @@ import numpy as np
 from scipy import interpolate
 import transforms3d
 from math import sin, cos
+import time
 
 
 def get_states_mocap(sock, mambo):

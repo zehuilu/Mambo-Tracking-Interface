@@ -50,5 +50,7 @@
     "RTD_MATLAB": {
         "IP_MATLAB": "127.0.0.1",
         "PORT_MATLAB": "11000"
-    }
+    },
+
+    "FLAG_PLOT": "1"
 }
