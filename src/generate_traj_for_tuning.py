@@ -8,13 +8,13 @@ from SplineByPeakSpeed import SplineByPeakSpeed
 
 
 if __name__ == "__main__":
-    p_0 = np.array([[1.0], [1.0], [1.0]])
+    p_0 = np.array([[-1.5], [0.0], [1.0]])
     v_0 = np.array([[0.0], [0.0], [0.0]])
     a_0 = np.array([[0.0], [0.0], [0.0]])
-    v_peak = np.array([[0.5], [0.5], [0.5]])
-    t_peak = 1.5
-    t_total = 3.0
-    dt = 0.5
+    v_peak = np.array([[1.0], [0.0], [0.0]])
+    t_peak = 3.0
+    t_total = 6.0
+    dt = 0.1
 
     # initialize the class
     spline_class = SplineByPeakSpeed(p_0, v_0, a_0, v_peak, t_peak, t_total, dt)

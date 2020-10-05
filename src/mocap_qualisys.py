@@ -116,6 +116,20 @@ async def main(config_file_name):
             msg = data.tostring()
             connection_tcp.sendall(msg)
             # print("6-DOF data sent via TCP!")
+
+            # for debugging
+            print("rotation matrix in array")
+            print(rotation.matrix)
+            print("rotation matrix in matrix")
+            print(rotation_np)
+            yaw_now, pitch_now, roll_now = transforms3d.euler.quat2euler(quat, axes='syzx')
+            print("yaw")
+            print(yaw_now)
+            print("pitch")
+            print(pitch_now)
+            print("roll")
+            print(roll_now)
+
         
         else:
             # error

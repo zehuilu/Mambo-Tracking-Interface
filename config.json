@@ -19,7 +19,7 @@
     },
 
     "MAMBO": {
-        "BLUETOOTH_ADDRESS": "D0:3A:93:36:E6:21",
+        "BLUETOOTH_ADDRESS": "D0:3A:30:60:E6:24",
         "TILT_MAX": "25.0",
         "VERTICAL_SPEED_MAX": "2.0",
         "YAW_RATE_MAX": "3.14"

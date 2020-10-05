@@ -152,50 +152,50 @@ class MamboControllerInterface(object):
             print("Setup successed!")
             # get the state information
             print("sleeping")
-            self.mambo.smart_sleep(0.1)
+            self.mambo.smart_sleep(1.0)
             self.mambo.ask_for_state_update()
-            # self.mambo.smart_sleep(0.5)
+            self.mambo.smart_sleep(1.0)
 
             self.battery_ini = self.mambo.sensors.battery
             print("The battery percentage is ", self.battery_ini)
 
-            if self.battery_ini <= 60:
-                raise Exception("The battery voltage is low!!!")
+            # if self.battery_ini <= 60:
+            #     raise Exception("The battery voltage is low!!!")
 
-            self.mambo.safe_takeoff(5)
-            print("taking off!")
-            self.mambo.fly_direct(0, 0, 0, 0, 1.0)
-            print("zero input first!")
+            if False:
+                self.mambo.safe_takeoff(5)
+                print("taking off!")
+                self.mambo.fly_direct(0, 0, 0, 0, 1.0)
+                print("zero input first!")
 
 
-            # Remember to change the total time!
-            while self.t_now < self.t_stop:
-                t0 = time.time()
+                # Remember to change the total time!
+                while self.t_now < self.t_stop:
+                    t0 = time.time()
 
-                # get states
-                # notice that the current function works only for one rigid body
-                data_for_csv = self.get_states_mocap()
-                # compute some variables
-                self.compute_states()
+                    # get states
+                    # notice that the current function works only for one rigid body
+                    data_for_csv = self.get_states_mocap()
+                    # compute some variables
+                    self.compute_states()
 
-                # send positions and velocities to MATLAB via UDP
-                msg = struct.pack('dddddd', self.posi_now[0,0], self.posi_now[1,0], self.posi_now[2,0], self.velo_now[0,0], self.velo_now[1,0], self.velo_now[2,0])
-                #data_test = struct.unpack('dddddd', msg)
-                print("sending message to matlab")
-                self.sock_matlab.sendto(msg, self.server_address_matlab)
+                    # send positions and velocities to MATLAB via UDP
+                    msg = struct.pack('dddddd', self.posi_now[0,0], self.posi_now[1,0], self.posi_now[2,0], self.velo_now[0,0], self.velo_now[1,0], self.velo_now[2,0])
+                    #data_test = struct.unpack('dddddd', msg)
+                    print("sending message to matlab")
+                    self.sock_matlab.sendto(msg, self.server_address_matlab)
 
-                traj_ref, T, self.hover_flag, self.csv_length_now = csv_helper.update_csv(self.directory_traj)
+                    traj_ref, T, self.hover_flag, self.csv_length_now = csv_helper.update_csv(self.directory_traj)
 
-                if not self.hover_flag:
-                    if (self.hover_flag == False) & (self.hover_flag_pre == True):
-                        t_start = t0
-                        self.idx_iter = 0
+                    if not self.hover_flag:
+                        if (self.hover_flag == False) & (self.hover_flag_pre == True):
+                            t_start = t0
+                            self.idx_iter = 0
 
-                    self.t_now = t0 - t_start
-                    print("Total Time")
-                    print(self.t_now)
+                        self.t_now = t0 - t_start
+                        print("Total Time")
+                        print(self.t_now)
 
-                    if True:
                         if self.csv_length_now == self.csv_length_pre:
                             self.t_stop = T[-1]
 
@@ -217,41 +217,42 @@ class MamboControllerInterface(object):
                         # send commands
                         #mambo.smart_sleep(self.dt_traj)
                         self.mambo.fly_direct(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, self.dt_traj)
+                        
                     else:
-                        # this part is for debugging
+                        print("Haven't generated csv file in MATLAB")
+                        print("You can run planner in MATLAB to generate the csv files after 1 second")
                         self.mambo.fly_direct(0.0, 0.0, 0.0, 0.0, self.dt_traj)
-                    
-                else:
-                    print("Haven't generated csv file in MATLAB")
-                    print("You can run planner in MATLAB to generate the csv files after 1 second")
-                    self.mambo.fly_direct(0.0, 0.0, 0.0, 0.0, self.dt_traj)
 
-                self.hover_flag_pre = self.hover_flag
-                t1 = time.time()
-                self.dt = t1 - t0
-                print("time interval for fly command")
-                print(self.dt)
-                print("current time")
-                print(self.t_now)
-                self.idx_iter += 1
+                    self.hover_flag_pre = self.hover_flag
+                    t1 = time.time()
+                    self.dt = t1 - t0
+                    print("time interval for fly command")
+                    print(self.dt)
+                    print("current time")
+                    print(self.t_now)
+                    self.idx_iter += 1
 
-            # after the iterations(trajectory) completes
-            self.mambo.fly_direct(0, 0, 0, 0, 1.0)
-            print("landing")
-            self.mambo.safe_land(5)
-            print("disconnect")
-            self.mambo.disconnect()
+                # after the iterations(trajectory) completes
+                self.mambo.fly_direct(0, 0, 0, 0, 1.0)
+                print("landing")
+                self.mambo.safe_land(5)
+                print("disconnect")
+                self.mambo.disconnect()
 
-            # save csv file
-            self.process_and_save_csv_sysid(t_start)
+                # save csv file
+                self.process_and_save_csv_sysid(t_start)
 
-            battery_after = self.mambo.sensors.battery
-            print("The battery percentage is ", battery_after)
-            print("The used battery percentage is", self.battery_ini - battery_after)
+                battery_after = self.mambo.sensors.battery
+                print("The battery percentage is ", battery_after)
+                print("The used battery percentage is", self.battery_ini - battery_after)
 
-            # plot
-            if bool(self.config_data["FLAG_PLOT"]):
-                self.visuaslize_result(traj_ref, T)
+                # plot
+                if bool(self.config_data["FLAG_PLOT"]):
+                    self.visuaslize_result(traj_ref, T)
+
+            else:
+                self.mambo.smart_sleep(30.0)
+        
 
 
     def get_states_mocap(self):
