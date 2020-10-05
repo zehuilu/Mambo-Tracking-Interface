@@ -14,6 +14,8 @@ import xml.etree.ElementTree as ET
 import pkg_resources
 import qtm
 
+import math
+
 
 def create_body_index(xml_string):
     """ Extract a name to index dictionary from 6-DOF settings xml """
@@ -122,13 +124,13 @@ async def main(config_file_name):
             print(rotation.matrix)
             print("rotation matrix in matrix")
             print(rotation_np)
-            yaw_now, pitch_now, roll_now = transforms3d.euler.quat2euler(quat, axes='syzx')
+            yaw_now, pitch_now, roll_now = transforms3d.euler.quat2euler(quat, axes='szyx')
             print("yaw")
-            print(yaw_now)
+            print(math.degrees(yaw_now))
             print("pitch")
-            print(pitch_now)
+            print(math.degrees(pitch_now))
             print("roll")
-            print(roll_now)
+            print(math.degrees(roll_now))
 
         
         else:

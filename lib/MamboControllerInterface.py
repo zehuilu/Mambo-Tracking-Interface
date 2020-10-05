@@ -251,7 +251,7 @@ class MamboControllerInterface(object):
                     self.visuaslize_result(traj_ref, T)
 
             else:
-                self.mambo.smart_sleep(30.0)
+                self.mambo.smart_sleep(100.0)
         
 
 
