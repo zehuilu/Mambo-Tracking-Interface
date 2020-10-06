@@ -159,102 +159,95 @@ class MamboControllerInterface(object):
             self.battery_ini = self.mambo.sensors.battery
             print("The battery percentage is ", self.battery_ini)
 
-            # if self.battery_ini <= 60:
-            #     raise Exception("The battery voltage is low!!!")
+            if self.battery_ini <= 60:
+                raise Exception("The battery voltage is low!!!")
 
-            # this is only for debugging
-            if False:
-                self.mambo.safe_takeoff(5)
-                print("taking off!")
-                self.mambo.fly_direct(0, 0, 0, 0, 1.0)
-                print("zero input first!")
+            self.mambo.safe_takeoff(5)
+            print("taking off!")
+            self.mambo.fly_direct(0, 0, 0, 0, 1.0)
+            print("zero input first!")
 
+            # Remember to change the total time!
+            while self.t_now < self.t_stop:
+                t0 = time.time()
 
-                # Remember to change the total time!
-                while self.t_now < self.t_stop:
-                    t0 = time.time()
+                # get states
+                # notice that the current function works only for one rigid body
+                data_for_csv = self.get_states_mocap()
+                # compute some variables
+                self.compute_states()
 
-                    # get states
-                    # notice that the current function works only for one rigid body
-                    data_for_csv = self.get_states_mocap()
-                    # compute some variables
-                    self.compute_states()
+                # send positions and velocities to MATLAB via UDP
+                msg = struct.pack('dddddd', self.posi_now[0,0], self.posi_now[1,0], self.posi_now[2,0], self.velo_now[0,0], self.velo_now[1,0], self.velo_now[2,0])
+                #data_test = struct.unpack('dddddd', msg)
+                print("sending message to matlab")
+                self.sock_matlab.sendto(msg, self.server_address_matlab)
 
-                    # send positions and velocities to MATLAB via UDP
-                    msg = struct.pack('dddddd', self.posi_now[0,0], self.posi_now[1,0], self.posi_now[2,0], self.velo_now[0,0], self.velo_now[1,0], self.velo_now[2,0])
-                    #data_test = struct.unpack('dddddd', msg)
-                    print("sending message to matlab")
-                    self.sock_matlab.sendto(msg, self.server_address_matlab)
+                traj_ref, T, self.hover_flag, self.csv_length_now = csv_helper.update_csv(self.directory_traj)
 
-                    traj_ref, T, self.hover_flag, self.csv_length_now = csv_helper.update_csv(self.directory_traj)
+                if not self.hover_flag:
+                    if (self.hover_flag == False) & (self.hover_flag_pre == True):
+                        t_start = t0
+                        self.idx_iter = 0
 
-                    if not self.hover_flag:
-                        if (self.hover_flag == False) & (self.hover_flag_pre == True):
-                            t_start = t0
-                            self.idx_iter = 0
-
-                        self.t_now = t0 - t_start
-                        print("Total Time")
-                        print(self.t_now)
-
-                        if self.csv_length_now == self.csv_length_pre:
-                            self.t_stop = T[-1]
-
-                        self.csv_length_pre = self.csv_length_now
-
-                        # load the current and the next desired points
-                        # 2-D numpy array, 6 by 1, px, py, pz, vx, vy, vz
-                        point_ref_0 = interpolate_traj(self.t_now, T, traj_ref, 'traj')
-                        point_ref_1 = interpolate_traj(self.t_now + self.dt_traj + self.t_look_ahead, T, traj_ref, 'traj')
-
-                        roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd = self.PID_controller(point_ref_0, point_ref_1)
-
-                        # record
-                        self.record_sysid(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, t0, data_for_csv)
-
-                        # p, v, yaw, pitch, roll, yaw, pitch, roll, vz
-                        self.record_states_plot(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd)
-
-                        # send commands
-                        #mambo.smart_sleep(self.dt_traj)
-                        self.mambo.fly_direct(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, self.dt_traj)
-                        
-                    else:
-                        print("Haven't generated csv file in MATLAB")
-                        print("You can run planner in MATLAB to generate the csv files after 1 second")
-                        self.mambo.fly_direct(0.0, 0.0, 0.0, 0.0, self.dt_traj)
-
-                    self.hover_flag_pre = self.hover_flag
-                    t1 = time.time()
-                    self.dt = t1 - t0
-                    print("time interval for fly command")
-                    print(self.dt)
-                    print("current time")
+                    self.t_now = t0 - t_start
+                    print("Total Time")
                     print(self.t_now)
-                    self.idx_iter += 1
 
-                # after the iterations(trajectory) completes
-                self.mambo.fly_direct(0, 0, 0, 0, 1.0)
-                print("landing")
-                self.mambo.safe_land(5)
-                print("disconnect")
-                self.mambo.disconnect()
+                    if self.csv_length_now == self.csv_length_pre:
+                        self.t_stop = T[-1]
 
-                # save csv file
-                self.process_and_save_csv_sysid(t_start)
+                    self.csv_length_pre = self.csv_length_now
 
-                battery_after = self.mambo.sensors.battery
-                print("The battery percentage is ", battery_after)
-                print("The used battery percentage is", self.battery_ini - battery_after)
+                    # load the current and the next desired points
+                    # 2-D numpy array, 6 by 1, px, py, pz, vx, vy, vz
+                    point_ref_0 = interpolate_traj(self.t_now, T, traj_ref, 'traj')
+                    point_ref_1 = interpolate_traj(self.t_now + self.dt_traj + self.t_look_ahead, T, traj_ref, 'traj')
 
-                # plot
-                if bool(self.config_data["FLAG_PLOT"]):
-                    self.visuaslize_result(traj_ref, T)
+                    roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd = self.PID_controller(point_ref_0, point_ref_1)
 
-            else:
-                self.mambo.smart_sleep(100.0)
+                    # record
+                    self.record_sysid(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, t0, data_for_csv)
+
+                    # p, v, yaw, pitch, roll, yaw, pitch, roll, vz
+                    self.record_states_plot(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd)
+
+                    # send commands
+                    #mambo.smart_sleep(self.dt_traj)
+                    self.mambo.fly_direct(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, self.dt_traj)
+                    
+                else:
+                    print("Haven't generated csv file in MATLAB")
+                    print("You can run planner in MATLAB to generate the csv files after 1 second")
+                    self.mambo.fly_direct(0.0, 0.0, 0.0, 0.0, self.dt_traj)
+
+                self.hover_flag_pre = self.hover_flag
+                t1 = time.time()
+                self.dt = t1 - t0
+                print("time interval for fly command")
+                print(self.dt)
+                print("current time")
+                print(self.t_now)
+                self.idx_iter += 1
+
+            # after the iterations(trajectory) completes
+            self.mambo.fly_direct(0, 0, 0, 0, 1.0)
+            print("landing")
+            self.mambo.safe_land(5)
+            print("disconnect")
+            self.mambo.disconnect()
+
+            # save csv file
+            self.process_and_save_csv_sysid(t_start)
+
+            battery_after = self.mambo.sensors.battery
+            print("The battery percentage is ", battery_after)
+            print("The used battery percentage is", self.battery_ini - battery_after)
+
+            # plot
+            if bool(self.config_data["FLAG_PLOT"]):
+                self.visuaslize_result(traj_ref, T)
         
-
 
     def get_states_mocap(self):
         # """Get real-time states from mocap system."""
@@ -409,15 +402,30 @@ class MamboControllerInterface(object):
         # plot 0, actual/desired 3-D trajectory
         fig_0 = plt.figure()
         ax0 = fig_0.gca(projection="3d", title="Trajectory")
-        ax0.plot(traj_ref[2, :], traj_ref[0, :], traj_ref[1, :], color="blue", linestyle="-", label="Reference Trajectory")
-        ax0.plot([traj_ref[2, 0]], [traj_ref[0, 0]], [traj_ref[1, 0]], marker="D", label="Reference Origin")
-        ax0.plot([traj_ref[2, -1]], [traj_ref[0, -1]], [traj_ref[1, -1]], marker="x", label="Reference Destination")
-        ax0.plot(pz_list, px_list, py_list, color="red", linestyle="-", label="Actual Trajectory") 
-        ax0.plot([pz_list[0]], [px_list[0]], [py_list[0]], marker="s", label="Actual Origin") 
-        ax0.plot([pz_list[-1]], [px_list[-1]], [py_list[-1]], marker="v", label="Actual Destination") 
-        ax0.set_xlabel("Z Label")
-        ax0.set_ylabel("X Label")
-        ax0.set_zlabel("Y Label")
+
+        if self.mocap_type == "PHASESPACE":
+            ax0.plot(traj_ref[2, :], traj_ref[0, :], traj_ref[1, :], color="blue", linestyle="-", label="Reference Trajectory")
+            ax0.plot([traj_ref[2, 0]], [traj_ref[0, 0]], [traj_ref[1, 0]], marker="D", label="Reference Origin")
+            ax0.plot([traj_ref[2, -1]], [traj_ref[0, -1]], [traj_ref[1, -1]], marker="x", label="Reference Destination")
+            ax0.plot(pz_list, px_list, py_list, color="red", linestyle="-", label="Actual Trajectory") 
+            ax0.plot([pz_list[0]], [px_list[0]], [py_list[0]], marker="s", label="Actual Origin") 
+            ax0.plot([pz_list[-1]], [px_list[-1]], [py_list[-1]], marker="v", label="Actual Destination") 
+            ax0.set_xlabel("Z Label")
+            ax0.set_ylabel("X Label")
+            ax0.set_zlabel("Y Label")
+        elif self.mocap_type == "QUALISYS":
+            ax0.plot(traj_ref[0, :], traj_ref[1, :], traj_ref[2, :], color="blue", linestyle="-", label="Reference Trajectory")
+            ax0.plot([traj_ref[0, 0]], [traj_ref[1, 0]], [traj_ref[2, 0]], marker="D", label="Reference Origin")
+            ax0.plot([traj_ref[0, -1]], [traj_ref[1, -1]], [traj_ref[2, -1]], marker="x", label="Reference Destination")
+            ax0.plot(px_list, py_list, pz_list, color="red", linestyle="-", label="Actual Trajectory") 
+            ax0.plot([px_list[0]], [py_list[0]], [pz_list[0]], marker="s", label="Actual Origin") 
+            ax0.plot([px_list[-1]], [py_list[-1]], [pz_list[-1]], marker="v", label="Actual Destination") 
+            ax0.set_xlabel("X Label")
+            ax0.set_ylabel("Y Label")
+            ax0.set_zlabel("Z Label")
+        else:
+            raise Exception("Please specify the supported motion capture system!")
+
         X = np.array(pz_list)
         Y = np.array(px_list)
         Z = np.array(py_list)
