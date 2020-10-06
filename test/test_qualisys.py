@@ -2,7 +2,6 @@
 import os
 import sys
 sys.path.append(os.getcwd()+'/lib')
-import socket
 import time
 import json
 import time
@@ -14,6 +13,8 @@ import xml.etree.ElementTree as ET
 import pkg_resources
 import qtm
 
+import math
+
 
 def create_body_index(xml_string):
     """ Extract a name to index dictionary from 6-DOF settings xml """
@@ -24,25 +25,6 @@ def create_body_index(xml_string):
         body_to_index[body.text.strip()] = index
 
     return body_to_index
-
-
-def publisher_tcp_main(config_data):
-    """
-    The following two lines show what is json_file_data
-        json_file = open('mocap_config.json')
-        json_file_data = json.load(json_file)
-    """
-
-    # IP for publisher
-    HOST_TCP = config_data["QUALISYS"]["IP_STATES_ESTIMATION"]
-    # Port for publisher
-    PORT_TCP = int(config_data["QUALISYS"]["PORT_STATES_ESTIMATION"])
-
-    server_address_tcp = (HOST_TCP, PORT_TCP)
-    # Create a TCP/IP socket
-    sock_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    return sock_tcp, server_address_tcp
 
 
 async def main(config_file_name):
@@ -74,21 +56,6 @@ async def main(config_file_name):
     # the one we want to access
     wanted_body = config_data["QUALISYS"]["NAME_SINGLE_BODY"]
 
-    # Create a UDP socket for data streaming
-    sock_tcp, server_address_tcp = publisher_tcp_main(config_data)
-
-    # Bind the socket to the port
-    sock_tcp.bind(server_address_tcp)
-
-    # Listen for incoming connections
-    sock_tcp.listen()
-
-    # Wait for a connection
-    print("waiting for a connection")
-    print("If you're using it for mambo RTD, you can run the LLC now.")
-    connection_tcp, client_address = sock_tcp.accept()
-    print("Built connection with", client_address)
-
     def on_packet(packet):
         # Get the 6-DOF data
         bodies = packet.get_6d()[1]
@@ -113,24 +80,20 @@ async def main(config_file_name):
             # print(quat)
 
             data = np.array([position.x/1000.0, position.y/1000.0, position.z/1000.0, quat[0], quat[1], quat[2], quat[3], t_now], dtype=float)
-            msg = data.tostring()
-            connection_tcp.sendall(msg)
-            # print("6-DOF data sent via TCP!")
 
-            # # for debugging
-            # # remember to import math
-            # print("rotation matrix in array")
-            # print(rotation.matrix)
-            # print("rotation matrix in matrix")
-            # print(rotation_np)
-            # roll_now, pitch_now, yaw_now = transforms3d.euler.quat2euler(quat, axes='sxyz')
-            # print("yaw")
-            # print(math.degrees(yaw_now))
-            # print("pitch")
-            # print(math.degrees(pitch_now))
-            # print("roll")
-            # print(math.degrees(roll_now))
+            # for debugging
+            print("rotation matrix in array")
+            print(rotation.matrix)
+            print("rotation matrix in matrix")
+            print(rotation_np)
 
+            roll_now, pitch_now, yaw_now = transforms3d.euler.quat2euler(quat, axes='sxyz')
+            print("yaw")
+            print(math.degrees(yaw_now))
+            print("pitch")
+            print(math.degrees(pitch_now))
+            print("roll")
+            print(math.degrees(roll_now))
         
         else:
             # error

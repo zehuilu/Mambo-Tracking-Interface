@@ -62,8 +62,6 @@ def subscriber_callback(sock, buffersize, data_number_integer):
         print(num_data_group)
         print(data_all)
 
-        data_for_csv = np.transpose(np.reshape(data_all, (num_data_group, data_number_integer)))
-
         data_for_LLC = data[-data_number_integer:]
         # 2-D numpy array, 3 by 1, [px; py; pz], in meters
         posi_now = np.reshape(data_for_LLC[0:3], (-1, 1))

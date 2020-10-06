@@ -27,7 +27,7 @@ class MamboControllerInterface(object):
         # Read the configuration from the json file
         json_file = open(config_file_name)
         self.config_data = json.load(json_file)
-        self.mocap_string = mocap_string
+        self.mocap_type = mocap_string
         self.flag_tuning_LLC = bool(self.config_data["FLAG_TUNING_LLC"])
 
         # desired yaw angle, if fly backward, choose pi; otherwise, choose 0.0, in radians
@@ -43,13 +43,13 @@ class MamboControllerInterface(object):
         # Create a TCP/IP socket
         self.sock_states = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # Connect the socket to the port where the server is listening
-        server_address_states = (self.config_data[self.mocap_string]["IP_STATES_ESTIMATION"], int(self.config_data[self.mocap_string]["PORT_STATES_ESTIMATION"]))
+        server_address_states = (self.config_data[self.mocap_type]["IP_STATES_ESTIMATION"], int(self.config_data[self.mocap_type]["PORT_STATES_ESTIMATION"]))
         print("connecting to", server_address_states)
         self.sock_states.connect(server_address_states)
         # maximum bytes received from TCP socket
-        self.data_bytes_max = int(self.config_data[self.mocap_string]["DATA_BYTES_MAX"])
+        self.data_bytes_max = int(self.config_data[self.mocap_type]["DATA_BYTES_MAX"])
         # how many numbers the TCP socket is sending
-        self.data_number_integer = int(self.config_data[self.mocap_string]["DATA_NUMBERS_STATES_ESTIMATION"])
+        self.data_number_integer = int(self.config_data[self.mocap_type]["DATA_NUMBERS_STATES_ESTIMATION"])
 
         # Sending real-time positions and velocities to MATLAB via UDP
         # Connect the socket to the port where the server is listening
@@ -150,11 +150,11 @@ class MamboControllerInterface(object):
             if not (result_set_tilt and result_set_vz):
                 raise Exception("Failed to set the maximum tilt angle and vz!")
             print("Setup successed!")
-            # get the state information
-            print("sleeping")
-            self.mambo.smart_sleep(1.0)
-            self.mambo.ask_for_state_update()
-            self.mambo.smart_sleep(1.0)
+            # # get the state information
+            # print("sleeping")
+            # self.mambo.smart_sleep(1.0)
+            # self.mambo.ask_for_state_update()
+            # self.mambo.smart_sleep(1.0)
 
             self.battery_ini = self.mambo.sensors.battery
             print("The battery percentage is ", self.battery_ini)
@@ -162,6 +162,7 @@ class MamboControllerInterface(object):
             # if self.battery_ini <= 60:
             #     raise Exception("The battery voltage is low!!!")
 
+            # this is only for debugging
             if False:
                 self.mambo.safe_takeoff(5)
                 print("taking off!")
@@ -288,8 +289,17 @@ class MamboControllerInterface(object):
 
         # current rotation matrix
         self.Rot_Mat = transforms3d.quaternions.quat2mat(self.ori_quat)
+
         # current euler angles in radians
-        self.yaw_now, self.pitch_now, self.roll_now = transforms3d.euler.quat2euler(self.ori_quat, axes='syzx')
+        if self.mocap_type == "PHASESPACE":
+            # This is the default coordinate system for PhaseSpace Motion Capture System
+            self.yaw_now, self.pitch_now, self.roll_now = transforms3d.euler.quat2euler(self.ori_quat, axes='syzx')
+        elif self.mocap_type == "QUALISYS":
+            # This is the default coordinate system for Qualisys Motion Capture System
+            self.roll_now, self.pitch_now, self.yaw_now = transforms3d.euler.quat2euler(self.ori_quat, axes='sxyz')
+        else:
+            raise Exception("Please specify the supported motion capture system!")
+
         self.yaw_rate = (self.yaw_now - self.yaw_prev) / self.dt
         self.yaw_prev = self.yaw_now
 
@@ -304,7 +314,14 @@ class MamboControllerInterface(object):
         # tune the height and yaw first, because they are decoupled!!!
         # control input vz depends on the ultrasonic sensor, which means there shouldn't be any obstacles under the drone.
 
-        feedforward_yaw = -1.0 * (sin(self.yaw_now) - sin(self.yaw_des))
+        if self.mocap_type == "PHASESPACE":
+            feedforward_yaw = -1.0 * (sin(self.yaw_now) - sin(self.yaw_des))
+        elif self.mocap_type == "QUALISYS":
+            feedforward_yaw = sin(self.yaw_now) - sin(self.yaw_des)
+        else:
+            raise Exception("Please specify the supported motion capture system!")
+
+
         yaw_proportion_term = feedforward_yaw - sin(self.yaw_rate)
         yaw_rate_cmd = self.Kp_psi*yaw_proportion_term + self.fwdfeedyaw*feedforward_yaw 
 
@@ -317,10 +334,10 @@ class MamboControllerInterface(object):
 
         vz_cmd = point_ref_1[4, 0] / self.vz_max * 100.0 + self.Kp_height * (point_ref_1[1, 0] - self.posi_now[1, 0])
 
-        if self.yaw_des == np.pi:
-            yaw_rate_cmd = 1.0 * yaw_rate_cmd
-        else:
+        if self.yaw_des == 0.0:
             yaw_rate_cmd = -1.0 * yaw_rate_cmd
+        else:
+            yaw_rate_cmd = 1.0 * yaw_rate_cmd
 
         return roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd
 
@@ -539,8 +556,8 @@ class MamboControllerInterface(object):
 
 if __name__ == "__main__":
     config_file_name = "config.json"
-    mocap_string = "QUALISYS"
+    mocap_type = "QUALISYS"
 
-    Controller = MamboControllerInterface(config_file_name, mocap_string)
+    Controller = MamboControllerInterface(config_file_name, mocap_type)
     Controller.run_LLC()
     
