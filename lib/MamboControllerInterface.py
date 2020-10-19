@@ -19,6 +19,54 @@ from interpolate_traj import interpolate_traj
 
 
 class MamboControllerInterface(object):
+    mocap_type: str
+    flag_tuning_LLC: bool
+    yaw_des: float
+    flag_mambo_connection: bool
+    server_address_states: tuple
+    data_bytes_max: int
+    data_number_integer: int
+    server_address_matlab: tuple
+    directory_sysid: str
+    directory_traj: str
+    directory_delete: str
+    tilt_max: float
+    vz_max: float
+    yaw_rate_max: float
+    t_look_ahead: float
+    dt_traj: float
+    yaw_prev: float
+    yaw_now: float
+    pitch_now: float
+    roll_now: float
+    yaw_rate: float
+    idx_iter: int
+    dt: int
+    t_now: float
+    hover_flag: bool
+    hover_flag_pre: bool
+    time_plot: list
+    csv_length_now: int
+    csv_length_pre: int
+    t_stop: float
+    fwdfeedheight: float
+    Kp_height: float
+    Ki_height: float
+    Kd_height: float
+    fwdfeedpitch: float
+    Kp_pitch: float
+    Ki_pitch: float
+    Kd_pitch: float
+    fwdfeedroll: float
+    Kp_roll: float
+    Ki_roll: float
+    Kd_roll: float
+    fwdfeedyaw: float
+    Kp_psi: float
+    Ki_psi: float
+    Kd_psi: float
+
+
     def __init__(self, config_file_name, mocap_string):
         """
         Constructor
@@ -78,7 +126,6 @@ class MamboControllerInterface(object):
         self.velo_now = np.array([[0.0], [0.0], [0.0]])
 
         self.posi_now = np.array([[0.0], [0.0], [0.0]])
-        self.ori_quat = [1.0, 0.0, 0.0, 0.0]
         self.Rot_Mat = np.identity(3)
         self.velo_body = np.array([[0.0], [0.0], [0.0]])
         self.yaw_now = self.yaw_des
@@ -88,17 +135,18 @@ class MamboControllerInterface(object):
 
 
         self.idx_iter = 0
+        # note: dt is a reference to dt_traj
         self.dt = self.dt_traj
         self.t_now = 0.0
         self.hover_flag = True
         self.hover_flag_pre = True
 
-        self.states_history_mocap = 0.0
-        self.states_history_cmd = 0.0
+        self.states_history_mocap = []
+        self.states_history_cmd = []
 
         self.time_plot = []
-        self.pv_plot = 0.0
-        self.angle_and_cmd_plot = 0.0
+        self.pv_plot = np.array([[0.0], [0.0]])
+        self.angle_and_cmd_plot = np.array([[0.0], [0.0]])
 
         self.csv_length_now = 1
         self.csv_length_pre = -1
@@ -150,11 +198,6 @@ class MamboControllerInterface(object):
             if not (result_set_tilt and result_set_vz):
                 raise Exception("Failed to set the maximum tilt angle and vz!")
             print("Setup successed!")
-            # # get the state information
-            # print("sleeping")
-            # self.mambo.smart_sleep(1.0)
-            # self.mambo.ask_for_state_update()
-            # self.mambo.smart_sleep(1.0)
 
             self.battery_ini = self.mambo.sensors.battery
             print("The battery percentage is ", self.battery_ini)
@@ -171,11 +214,8 @@ class MamboControllerInterface(object):
             while self.t_now < self.t_stop:
                 t0 = time.time()
 
-                # get states
-                # notice that the current function works only for one rigid body
-                data_for_csv = self.get_states_mocap()
-                # compute some variables
-                self.compute_states()
+                # update the states from mocap system
+                data_for_csv = self.update_states_mocap()
 
                 # send positions and velocities to MATLAB via UDP
                 msg = struct.pack('dddddd', self.posi_now[0,0], self.posi_now[1,0], self.posi_now[2,0], self.velo_now[0,0], self.velo_now[1,0], self.velo_now[2,0])
@@ -249,8 +289,67 @@ class MamboControllerInterface(object):
                 self.visuaslize_result(traj_ref, T)
         
 
-    def get_states_mocap(self):
-        # """Get real-time states from mocap system."""
+    # def get_states_mocap(self):
+    #     # Get real-time states from mocap system
+
+    #     msg = self.sock_states.recv(self.data_bytes_max)
+    #     if msg:
+    #         data = np.frombuffer(msg, dtype=float)
+    #         num_data_group = int(np.size(data)/self.data_number_integer)
+    #         data_all = data[-self.data_number_integer*num_data_group:]
+    #         data_for_csv = np.transpose(np.reshape(data_all, (num_data_group, self.data_number_integer)))
+
+    #         data_for_LLC = data[-self.data_number_integer:]
+    #         # 2-D numpy array, 3 by 1, [px; py; pz], in meters
+    #         self.posi_now = np.reshape(data_for_LLC[0:3], (-1, 1))
+
+    #         if self.data_number_integer == 8:
+    #             # 1-D numpy array to list, [w, x, y, z] (when #bytes = 8)
+    #             self.ori_quat = data_for_LLC[3:self.data_number_integer-1].tolist()
+    #         elif self.data_number_integer == 13:
+    #             # 1-D numpy array to 2-D numpy 3-by-3 rotation matrix, rot_mat = [R11, R12, R13, R21, ..., R33] (when #bytes = 13)
+    #             self.Rot_Mat = data_for_LLC[3:self.data_number_integer-1].reshape(3, 3)
+    #         else:
+    #             raise Exception("Please specify DATA_NUMBERS_STATES_ESTIMATION in congif.json and revise this part accordingly!")
+    #     else:
+    #         # if phasespace mocap didn't capture the data, land the drone
+    #         self.posi_now = np.array([[0.0], [0.0], [0.0]])
+    #         self.ori_quat = [1.0, 0.0, 0.0, 0.0]
+    #         print("Didn't receive the mocap data via socket")
+    #         print("Land!")
+    #         self.mambo.fly_direct(0, 0, 0, 0, 0.1)
+    #         self.mambo.safe_land(5)
+    #     return data_for_csv
+
+
+    # def compute_states(self):
+    # # based on function get_states_mocap(), compute some necessary states
+    #     # compute the velocity
+    #     self.velo_now = (self.posi_now - self.posi_pre) / self.dt
+    #     self.posi_pre = self.posi_now
+
+    #     # current euler angles in radians
+    #     if self.mocap_type == "PHASESPACE":
+    #         # current rotation matrix
+    #         self.Rot_Mat = transforms3d.quaternions.quat2mat(self.ori_quat)
+
+    #         # This is the default coordinate system for PhaseSpace Motion Capture System
+    #         self.yaw_now, self.pitch_now, self.roll_now = transforms3d.euler.quat2euler(self.ori_quat, axes='syzx')
+    #     elif self.mocap_type == "QUALISYS":
+    #         # This is the default coordinate system for Qualisys Motion Capture System
+    #         self.roll_now, self.pitch_now, self.yaw_now = transforms3d.euler.mat2euler(self.Rot_Mat, axes='sxyz')
+    #     else:
+    #         raise Exception("Please specify the supported motion capture system!")
+
+    #     self.yaw_rate = (self.yaw_now - self.yaw_prev) / self.dt
+    #     self.yaw_prev = self.yaw_now
+
+    #     # Rotate into Body-fixed Frame
+    #     self.velo_body = np.dot(np.linalg.pinv(self.Rot_Mat), self.velo_now)
+
+
+    def update_states_mocap(self):
+        # Get real-time states from mocap system
 
         msg = self.sock_states.recv(self.data_bytes_max)
         if msg:
@@ -262,42 +361,62 @@ class MamboControllerInterface(object):
             data_for_LLC = data[-self.data_number_integer:]
             # 2-D numpy array, 3 by 1, [px; py; pz], in meters
             self.posi_now = np.reshape(data_for_LLC[0:3], (-1, 1))
-            # 1-D numpy array to list, [w, x, y, z]
-            self.ori_quat = data_for_LLC[3:self.data_number_integer-1].tolist()
+
+            # current euler angles in radians
+            if self.mocap_type == "PHASESPACE":
+
+                # 1-D numpy array to list, [w, x, y, z] (when #bytes = 8)
+                # self.ori_quat = data_for_LLC[3:self.data_number_integer-1].tolist()
+
+                # current rotation matrix
+                self.Rot_Mat = transforms3d.quaternions.quat2mat(data_for_LLC[3:self.data_number_integer-1])
+
+                # This is the default coordinate system for PhaseSpace Motion Capture System
+                self.yaw_now, self.pitch_now, self.roll_now = transforms3d.euler.quat2euler(data_for_LLC[3:self.data_number_integer-1], axes='syzx')
+
+            elif self.mocap_type == "QUALISYS":
+
+                # 1-D numpy array to 2-D numpy 3-by-3 rotation matrix, rot_mat = [R11, R12, R13, R21, ..., R33] (when #bytes = 13)
+                self.Rot_Mat = data_for_LLC[3:self.data_number_integer-1].reshape(3, 3)
+
+                # This is the default coordinate system for Qualisys Motion Capture System
+
+                try:
+                    self.roll_now, self.pitch_now, self.yaw_now = transforms3d.euler.mat2euler(self.Rot_Mat, axes='sxyz')
+                except:
+                    self.mambo.fly_direct(0, 0, 0, 0, 0.1)
+                    self.mambo.safe_land(5)
+                    self.mambo.smart_sleep(1.0)
+                    raise Exception("Mambo flew outside the mocap area! Emergency Landing!")
+
+            else:
+                self.mambo.fly_direct(0, 0, 0, 0, 0.1)
+                self.mambo.safe_land(5)
+                self.mambo.smart_sleep(1.0)
+                raise Exception("Please specify the supported motion capture system! Auto landing!")
+
         else:
+            # if phasespace mocap didn't capture the data, land the drone
             self.posi_now = np.array([[0.0], [0.0], [0.0]])
-            self.ori_quat = [1.0, 0.0, 0.0, 0.0]
-            print("Didn't receive the mocap data via socket")
+            print("Didn't receive the mocap data via socket!")
             print("Land!")
             self.mambo.fly_direct(0, 0, 0, 0, 0.1)
             self.mambo.safe_land(5)
-        return data_for_csv
+            self.mambo.smart_sleep(1.0)
+            raise Exception("Mambo flew outside the mocap area! Emergency Landing!")
 
-
-    def compute_states(self):
-    # based on function get_states_mocap(), compute some necessary states
+        
         # compute the velocity
         self.velo_now = (self.posi_now - self.posi_pre) / self.dt
         self.posi_pre = self.posi_now
-
-        # current rotation matrix
-        self.Rot_Mat = transforms3d.quaternions.quat2mat(self.ori_quat)
-
-        # current euler angles in radians
-        if self.mocap_type == "PHASESPACE":
-            # This is the default coordinate system for PhaseSpace Motion Capture System
-            self.yaw_now, self.pitch_now, self.roll_now = transforms3d.euler.quat2euler(self.ori_quat, axes='syzx')
-        elif self.mocap_type == "QUALISYS":
-            # This is the default coordinate system for Qualisys Motion Capture System
-            self.roll_now, self.pitch_now, self.yaw_now = transforms3d.euler.quat2euler(self.ori_quat, axes='sxyz')
-        else:
-            raise Exception("Please specify the supported motion capture system!")
 
         self.yaw_rate = (self.yaw_now - self.yaw_prev) / self.dt
         self.yaw_prev = self.yaw_now
 
         # Rotate into Body-fixed Frame
         self.velo_body = np.dot(np.linalg.pinv(self.Rot_Mat), self.velo_now)
+
+        return data_for_csv
 
 
     def PID_controller(self, point_ref_0, point_ref_1):
@@ -312,6 +431,9 @@ class MamboControllerInterface(object):
         elif self.mocap_type == "QUALISYS":
             feedforward_yaw = sin(self.yaw_now) - sin(self.yaw_des)
         else:
+            self.mambo.fly_direct(0, 0, 0, 0, 0.1)
+            self.mambo.safe_land(5)
+            self.mambo.smart_sleep(1.0)
             raise Exception("Please specify the supported motion capture system!")
 
 

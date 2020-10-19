@@ -8,7 +8,7 @@ from SplineByPeakSpeed import SplineByPeakSpeed
 
 
 if __name__ == "__main__":
-    p_0 = np.array([[-1.5], [0.0], [0.6]])
+    p_0 = np.array([[-1.8], [0.0], [0.6]])
     v_0 = np.array([[0.0], [0.0], [0.0]])
     a_0 = np.array([[0.0], [0.0], [0.0]])
     # v_peak = np.array([[1.0], [0.0], [0.0]])

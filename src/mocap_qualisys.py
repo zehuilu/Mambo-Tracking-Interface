@@ -101,19 +101,20 @@ async def main(config_file_name):
             # You can use position and rotation here. Notice that the unit for position is mm!
             # print(wanted_body)
 
-            # rotation.matrix is a tuple with 9 elements.
-            rotation_np = np.asarray(rotation.matrix, dtype=float).reshape(3, 3)
-
             # send 6-DOF data via TCP
             # concatenate the position and rotation matrix vertically
-            # msg = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0) + rotation.matrix, dtype=float).tostring()
+            msg = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0) + rotation.matrix + (t_now, ), dtype=float).tostring()
 
-            quat = transforms3d.quaternions.mat2quat(rotation_np)
-            # print("quat")
-            # print(quat)
 
-            data = np.array([position.x/1000.0, position.y/1000.0, position.z/1000.0, quat[0], quat[1], quat[2], quat[3], t_now], dtype=float)
-            msg = data.tostring()
+
+            # rotation.matrix is a tuple with 9 elements.
+            
+            # rotation_np = np.asarray(rotation.matrix, dtype=float).reshape(3, 3)
+            # quat = transforms3d.quaternions.mat2quat(rotation_np)
+            # data = np.array([position.x/1000.0, position.y/1000.0, position.z/1000.0, quat[0], quat[1], quat[2], quat[3], t_now], dtype=float)
+            # msg = data.tostring()
+
+
             connection_tcp.sendall(msg)
             # print("6-DOF data sent via TCP!")
 

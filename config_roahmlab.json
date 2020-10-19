@@ -9,15 +9,6 @@
         "FREQUENCY_MOCAP": "120"
     },
 
-    "QUALISYS": {
-        "IP_MOCAP_SERVER": "192.168.254.1",
-        "IP_STATES_ESTIMATION": "127.0.0.1",
-        "PORT_STATES_ESTIMATION": "9000",
-        "DATA_NUMBERS_STATES_ESTIMATION": "8",
-        "DATA_BYTES_MAX": "4096",
-        "NAME_SINGLE_BODY": "mambo_01"
-    },
-
     "MAMBO": {
         "BLUETOOTH_ADDRESS": "D0:3A:93:36:E6:21",
         "TILT_MAX": "25.0",
@@ -53,7 +44,7 @@
         "DATA_NUMBERS_MATLAB": "6"
     },
 
-    "FLAG_TUNING_LLC": "1",
+    "FLAG_TUNING_LLC": "0",
     "FLAG_PLOT": "1",
     "DIRECTORY_SYSID": "/sysid_data/",
     "DIRECTORY_TRAJ": "/traj_csv_files/"
