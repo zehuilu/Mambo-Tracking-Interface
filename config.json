@@ -14,7 +14,7 @@
         "IP_STATES_ESTIMATION": "127.0.0.1",
         "PORT_STATES_ESTIMATION": "9001",
         "DATA_NUMBERS_STATES_ESTIMATION": "13",
-        "DATA_BYTES_MAX": "4096",
+        "DATA_BYTES_MAX": "6656",
         "NAME_SINGLE_BODY": "mambo_01"
     },
 

@@ -59,16 +59,16 @@ def subscriber_callback(sock, buffersize, data_number_integer):
         num_data_group = int(np.size(data)/data_number_integer)
         data_all = data[-data_number_integer*num_data_group:]
         print("Received the data from the publisher.")
-        print(num_data_group)
-        print(data_all)
+        # print(num_data_group)
+        # print(data_all)
 
         data_for_LLC = data[-data_number_integer:]
         # 2-D numpy array, 3 by 1, [px; py; pz], in meters
         posi_now = np.reshape(data_for_LLC[0:3], (-1, 1))
         print(posi_now)
         # 1-D numpy array to list, [w, x, y, z]
-        ori_quat = data_for_LLC[3:data_number_integer-1].tolist()
-        print(ori_quat)
+        Rot_Mat = data_for_LLC[3:data_number_integer-1].reshape(3, 3)
+        print(Rot_Mat)
 
         return_flag = True
     else:

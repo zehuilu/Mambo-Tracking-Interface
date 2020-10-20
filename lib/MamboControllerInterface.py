@@ -6,6 +6,7 @@ import socket
 import time
 import json
 import struct
+import copy
 import transforms3d
 import matplotlib
 import matplotlib.pyplot as plt
@@ -67,7 +68,7 @@ class MamboControllerInterface(object):
     Kd_psi: float
 
 
-    def __init__(self, config_file_name, mocap_string):
+    def __init__(self, config_file_name: str, mocap_string: str):
         """
         Constructor
         """
@@ -128,15 +129,13 @@ class MamboControllerInterface(object):
         self.posi_now = np.array([[0.0], [0.0], [0.0]])
         self.Rot_Mat = np.identity(3)
         self.velo_body = np.array([[0.0], [0.0], [0.0]])
-        self.yaw_now = self.yaw_des
+        self.yaw_now = copy.deepcopy(self.yaw_des)
         self.pitch_now = 0.0
         self.roll_now = 0.0
         self.yaw_rate = 0.0
 
-
         self.idx_iter = 0
-        # note: dt is a reference to dt_traj
-        self.dt = self.dt_traj
+        self.dt = copy.deepcopy(self.dt_traj)
         self.t_now = 0.0
         self.hover_flag = True
         self.hover_flag_pre = True
@@ -152,27 +151,8 @@ class MamboControllerInterface(object):
         self.csv_length_pre = -1
         self.t_stop = 100.0 # is a large enough number
 
-        # load gains for PID controller
-        # height controller gains
-        self.fwdfeedheight = float(self.config_data["LOW_LEVEL_CONTROLLER"]["FWDFEED_HEIGHT"])
-        self.Kp_height = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KP_HEIGHT"])
-        self.Ki_height = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KI_HEIGHT"])
-        self.Kd_height = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KD_HEIGHT"])
-        #pitch/forward velocity controller gains
-        self.fwdfeedpitch = float(self.config_data["LOW_LEVEL_CONTROLLER"]["FWDFEED_PITCH"])
-        self.Kp_pitch = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KP_PITCH"])
-        self.Ki_pitch = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KI_PITCH"])
-        self.Kd_pitch = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KD_PITCH"])
-        #roll/lateral velocity controller gains
-        self.fwdfeedroll = float(self.config_data["LOW_LEVEL_CONTROLLER"]["FWDFEED_ROLL"])
-        self.Kp_roll = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KP_ROLL"])
-        self.Ki_roll = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KI_ROLL"])
-        self.Kd_roll = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KD_ROLL"])
-        #yaw rate controller gains
-        self.fwdfeedyaw = float(self.config_data["LOW_LEVEL_CONTROLLER"]["FWDFEED_YAW"])
-        self.Kp_psi = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KP_YAW"])
-        self.Ki_psi = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KI_YAW"])
-        self.Kd_psi = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KD_YAW"])
+        # # load gains for PID controller
+        self.set_PID_gains()
 
         # if flag==1, don't remove current csv files for tuning LLC
         # if flag==0, remove all the current file under this directory
@@ -186,24 +166,7 @@ class MamboControllerInterface(object):
             print("Mambo connection failed!")
         else:
             # calibrate the Mambo
-            self.mambo.flat_trim()
-            print("calibrated the Mambo")
-            # set the maximum tilt angle in degrees
-            # tilt_max is in radians!!!
-            result_set_tilt = self.mambo.set_max_tilt(self.tilt_max)
-            print("set the maximum tilt angle")
-            # set the maximum vertical speed in m/s
-            result_set_vz = self.mambo.set_max_vertical_speed(self.vz_max)
-            print("set the maximum vertical speed")
-            if not (result_set_tilt and result_set_vz):
-                raise Exception("Failed to set the maximum tilt angle and vz!")
-            print("Setup successed!")
-
-            self.battery_ini = self.mambo.sensors.battery
-            print("The battery percentage is ", self.battery_ini)
-
-            if self.battery_ini <= 60:
-                raise Exception("The battery voltage is low!!!")
+            self.calibrate_mambo(60)
 
             self.mambo.safe_takeoff(5)
             print("taking off!")
@@ -414,7 +377,14 @@ class MamboControllerInterface(object):
         self.yaw_prev = self.yaw_now
 
         # Rotate into Body-fixed Frame
-        self.velo_body = np.dot(np.linalg.pinv(self.Rot_Mat), self.velo_now)
+        try:
+            # self.velo_body = np.dot(np.linalg.pinv(self.Rot_Mat), self.velo_now)
+            self.velo_body = np.dot(np.linalg.inv(self.Rot_Mat), self.velo_now)
+        except:
+            self.mambo.fly_direct(0, 0, 0, 0, 0.1)
+            self.mambo.safe_land(5)
+            self.mambo.smart_sleep(1.0)
+            raise Exception("Mocap singularity! Emergency Landing!")
 
         return data_for_csv
 
@@ -503,6 +473,53 @@ class MamboControllerInterface(object):
         #t_re_temp = t_have - t_start
         #cmd_history_test = np.concatenate((states_history_cmd, np.reshape(t_re_temp,(1,np.size(t_re_temp)))), axis=0)
         #np.savetxt(FileName1, cmd_history_test, delimiter=",")
+
+
+    def set_PID_gains(self):
+        # load gains for PID controller
+
+        # height controller gains
+        self.fwdfeedheight = float(self.config_data["LOW_LEVEL_CONTROLLER"]["FWDFEED_HEIGHT"])
+        self.Kp_height = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KP_HEIGHT"])
+        self.Ki_height = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KI_HEIGHT"])
+        self.Kd_height = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KD_HEIGHT"])
+        #pitch/forward velocity controller gains
+        self.fwdfeedpitch = float(self.config_data["LOW_LEVEL_CONTROLLER"]["FWDFEED_PITCH"])
+        self.Kp_pitch = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KP_PITCH"])
+        self.Ki_pitch = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KI_PITCH"])
+        self.Kd_pitch = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KD_PITCH"])
+        #roll/lateral velocity controller gains
+        self.fwdfeedroll = float(self.config_data["LOW_LEVEL_CONTROLLER"]["FWDFEED_ROLL"])
+        self.Kp_roll = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KP_ROLL"])
+        self.Ki_roll = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KI_ROLL"])
+        self.Kd_roll = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KD_ROLL"])
+        #yaw rate controller gains
+        self.fwdfeedyaw = float(self.config_data["LOW_LEVEL_CONTROLLER"]["FWDFEED_YAW"])
+        self.Kp_psi = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KP_YAW"])
+        self.Ki_psi = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KI_YAW"])
+        self.Kd_psi = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KD_YAW"])
+
+
+    def calibrate_mambo(self, battery_lb: int):
+        # calibrate the Mambo
+        self.mambo.flat_trim()
+        print("calibrated the Mambo")
+        # set the maximum tilt angle in degrees
+        # tilt_max is in radians!!!
+        result_set_tilt = self.mambo.set_max_tilt(self.tilt_max)
+        print("set the maximum tilt angle")
+        # set the maximum vertical speed in m/s
+        result_set_vz = self.mambo.set_max_vertical_speed(self.vz_max)
+        print("set the maximum vertical speed")
+        if not (result_set_tilt and result_set_vz):
+            raise Exception("Failed to set the maximum tilt angle and vz!")
+        print("Setup successed!")
+
+        self.battery_ini = self.mambo.sensors.battery
+        print("The battery percentage is ", self.battery_ini)
+
+        if self.battery_ini <= battery_lb:
+            raise Exception("The battery voltage is low!!!")
 
 
     def visuaslize_result(self, traj_ref, T):
