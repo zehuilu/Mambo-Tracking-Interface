@@ -250,65 +250,6 @@ class MamboControllerInterface(object):
             # plot
             if bool(self.config_data["FLAG_PLOT"]):
                 self.visuaslize_result(traj_ref, T)
-        
-
-    # def get_states_mocap(self):
-    #     # Get real-time states from mocap system
-
-    #     msg = self.sock_states.recv(self.data_bytes_max)
-    #     if msg:
-    #         data = np.frombuffer(msg, dtype=float)
-    #         num_data_group = int(np.size(data)/self.data_number_integer)
-    #         data_all = data[-self.data_number_integer*num_data_group:]
-    #         data_for_csv = np.transpose(np.reshape(data_all, (num_data_group, self.data_number_integer)))
-
-    #         data_for_LLC = data[-self.data_number_integer:]
-    #         # 2-D numpy array, 3 by 1, [px; py; pz], in meters
-    #         self.posi_now = np.reshape(data_for_LLC[0:3], (-1, 1))
-
-    #         if self.data_number_integer == 8:
-    #             # 1-D numpy array to list, [w, x, y, z] (when #bytes = 8)
-    #             self.ori_quat = data_for_LLC[3:self.data_number_integer-1].tolist()
-    #         elif self.data_number_integer == 13:
-    #             # 1-D numpy array to 2-D numpy 3-by-3 rotation matrix, rot_mat = [R11, R12, R13, R21, ..., R33] (when #bytes = 13)
-    #             self.Rot_Mat = data_for_LLC[3:self.data_number_integer-1].reshape(3, 3)
-    #         else:
-    #             raise Exception("Please specify DATA_NUMBERS_STATES_ESTIMATION in congif.json and revise this part accordingly!")
-    #     else:
-    #         # if phasespace mocap didn't capture the data, land the drone
-    #         self.posi_now = np.array([[0.0], [0.0], [0.0]])
-    #         self.ori_quat = [1.0, 0.0, 0.0, 0.0]
-    #         print("Didn't receive the mocap data via socket")
-    #         print("Land!")
-    #         self.mambo.fly_direct(0, 0, 0, 0, 0.1)
-    #         self.mambo.safe_land(5)
-    #     return data_for_csv
-
-
-    # def compute_states(self):
-    # # based on function get_states_mocap(), compute some necessary states
-    #     # compute the velocity
-    #     self.velo_now = (self.posi_now - self.posi_pre) / self.dt
-    #     self.posi_pre = self.posi_now
-
-    #     # current euler angles in radians
-    #     if self.mocap_type == "PHASESPACE":
-    #         # current rotation matrix
-    #         self.Rot_Mat = transforms3d.quaternions.quat2mat(self.ori_quat)
-
-    #         # This is the default coordinate system for PhaseSpace Motion Capture System
-    #         self.yaw_now, self.pitch_now, self.roll_now = transforms3d.euler.quat2euler(self.ori_quat, axes='syzx')
-    #     elif self.mocap_type == "QUALISYS":
-    #         # This is the default coordinate system for Qualisys Motion Capture System
-    #         self.roll_now, self.pitch_now, self.yaw_now = transforms3d.euler.mat2euler(self.Rot_Mat, axes='sxyz')
-    #     else:
-    #         raise Exception("Please specify the supported motion capture system!")
-
-    #     self.yaw_rate = (self.yaw_now - self.yaw_prev) / self.dt
-    #     self.yaw_prev = self.yaw_now
-
-    #     # Rotate into Body-fixed Frame
-    #     self.velo_body = np.dot(np.linalg.pinv(self.Rot_Mat), self.velo_now)
 
 
     def update_states_mocap(self):
@@ -378,8 +319,10 @@ class MamboControllerInterface(object):
 
         # Rotate into Body-fixed Frame
         try:
-            # self.velo_body = np.dot(np.linalg.pinv(self.Rot_Mat), self.velo_now)
-            self.velo_body = np.dot(np.linalg.inv(self.Rot_Mat), self.velo_now)
+            print(self.Rot_Mat)
+            self.velo_body = np.dot(np.linalg.pinv(self.Rot_Mat), self.velo_now)
+            # self.velo_body = np.dot(np.linalg.inv(self.Rot_Mat), self.velo_now)
+            print(self.velo_body)
         except:
             self.mambo.fly_direct(0, 0, 0, 0, 0.1)
             self.mambo.safe_land(5)
@@ -514,6 +457,11 @@ class MamboControllerInterface(object):
         if not (result_set_tilt and result_set_vz):
             raise Exception("Failed to set the maximum tilt angle and vz!")
         print("Setup successed!")
+
+        # get the state information
+        self.mambo.smart_sleep(1)
+        self.mambo.ask_for_state_update()
+        self.mambo.smart_sleep(1)
 
         self.battery_ini = self.mambo.sensors.battery
         print("The battery percentage is ", self.battery_ini)
