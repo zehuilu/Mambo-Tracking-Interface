@@ -79,6 +79,9 @@ class MamboControllerInterface(object):
         self.mocap_type = mocap_string
         self.flag_tuning_LLC = bool(self.config_data["FLAG_TUNING_LLC"])
 
+        if not ((self.mocap_type == "PHASESPACE") or (self.mocap_type == "QUALISYS")):
+            raise Exception("Please specify the supported motion capture system!")
+
         # desired yaw angle, if fly backward, choose pi; otherwise, choose 0.0, in radians
         self.yaw_des = float(self.config_data["LOW_LEVEL_CONTROLLER"]["YAW_DES"])
 
@@ -204,10 +207,11 @@ class MamboControllerInterface(object):
 
                     # load the current and the next desired points
                     # 2-D numpy array, 6 by 1, px, py, pz, vx, vy, vz
-                    point_ref_0 = interpolate_traj(self.t_now, T, traj_ref, 'traj')
+                    # point_ref_0 = interpolate_traj(self.t_now, T, traj_ref, 'traj')
                     point_ref_1 = interpolate_traj(self.t_now + self.dt_traj + self.t_look_ahead, T, traj_ref, 'traj')
 
-                    roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd = self.PID_controller(point_ref_0, point_ref_1)
+                    # roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd = self.PID_controller(point_ref_0, point_ref_1)
+                    roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd = self.PID_controller(point_ref_1)
 
                     # record
                     self.record_sysid(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, t0, data_for_csv)
@@ -293,15 +297,8 @@ class MamboControllerInterface(object):
                     self.mambo.smart_sleep(1.0)
                     raise Exception("Mambo flew outside the mocap area! Emergency Landing!")
 
-            else:
-                self.mambo.fly_direct(0, 0, 0, 0, 0.1)
-                self.mambo.safe_land(5)
-                self.mambo.smart_sleep(1.0)
-                raise Exception("Please specify the supported motion capture system! Auto landing!")
-
         else:
             # if phasespace mocap didn't capture the data, land the drone
-            self.posi_now = np.array([[0.0], [0.0], [0.0]])
             print("Didn't receive the mocap data via socket!")
             print("Land!")
             self.mambo.fly_direct(0, 0, 0, 0, 0.1)
@@ -319,10 +316,7 @@ class MamboControllerInterface(object):
 
         # Rotate into Body-fixed Frame
         try:
-            print(self.Rot_Mat)
             self.velo_body = np.dot(np.linalg.pinv(self.Rot_Mat), self.velo_now)
-            # self.velo_body = np.dot(np.linalg.inv(self.Rot_Mat), self.velo_now)
-            print(self.velo_body)
         except:
             self.mambo.fly_direct(0, 0, 0, 0, 0.1)
             self.mambo.safe_land(5)
@@ -332,7 +326,7 @@ class MamboControllerInterface(object):
         return data_for_csv
 
 
-    def PID_controller(self, point_ref_0, point_ref_1):
+    def PID_controller(self, point_ref_1):
         # control input vz depends on the ultrasonic sensor, which means there shouldn't be any obstacles under the drone.
 
         # PID control gains for Vertical Velocity Command
@@ -340,32 +334,50 @@ class MamboControllerInterface(object):
         # control input vz depends on the ultrasonic sensor, which means there shouldn't be any obstacles under the drone.
 
         if self.mocap_type == "PHASESPACE":
+            
             feedforward_yaw = -1.0 * (sin(self.yaw_now) - sin(self.yaw_des))
+
+            yaw_proportion_term = feedforward_yaw - sin(self.yaw_rate)
+            yaw_rate_cmd = self.Kp_psi*yaw_proportion_term + self.fwdfeedyaw*feedforward_yaw 
+
+            velo_des_body = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref_1[3:6, 0], (-1, 1)))
+            proportion_term = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref_1[0:3, 0], (-1, 1)) - self.posi_now)
+            deri_term = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref_1[3:6, 0], (-1, 1))) - self.velo_body
+
+            pitch_cmd = self.Kp_pitch*proportion_term[0, 0] + self.Kd_pitch*deri_term[0, 0] + self.fwdfeedpitch*velo_des_body[0, 0]
+            roll_cmd = self.Kp_roll*proportion_term[2, 0] + self.Kd_roll*deri_term[2, 0] + self.fwdfeedroll*velo_des_body[2, 0]
+
+            vz_cmd = point_ref_1[4, 0] / self.vz_max * 100.0 + self.Kp_height * (point_ref_1[1, 0] - self.posi_now[1, 0])
+
+            if self.yaw_des == 0.0:
+                yaw_rate_cmd = -1.0 * yaw_rate_cmd
+            else:
+                yaw_rate_cmd = 1.0 * yaw_rate_cmd
+
+
         elif self.mocap_type == "QUALISYS":
             feedforward_yaw = sin(self.yaw_now) - sin(self.yaw_des)
-        else:
-            self.mambo.fly_direct(0, 0, 0, 0, 0.1)
-            self.mambo.safe_land(5)
-            self.mambo.smart_sleep(1.0)
-            raise Exception("Please specify the supported motion capture system!")
 
 
-        yaw_proportion_term = feedforward_yaw - sin(self.yaw_rate)
-        yaw_rate_cmd = self.Kp_psi*yaw_proportion_term + self.fwdfeedyaw*feedforward_yaw 
+            yaw_proportion_term = feedforward_yaw - sin(self.yaw_rate)
+            yaw_rate_cmd = self.Kp_psi*yaw_proportion_term + self.fwdfeedyaw*feedforward_yaw 
 
-        velo_des_body = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref_1[3:6, 0], (-1, 1)))
-        proportion_term = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref_1[0:3, 0], (-1, 1)) - self.posi_now)
-        deri_term = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref_1[3:6, 0], (-1, 1))) - self.velo_body
+            velo_des_body = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref_1[3:6, 0], (-1, 1)))
+            proportion_term = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref_1[0:3, 0], (-1, 1)) - self.posi_now)
+            deri_term = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref_1[3:6, 0], (-1, 1))) - self.velo_body
 
-        pitch_cmd = self.Kp_pitch*proportion_term[0, 0] + self.Kd_pitch*deri_term[0, 0] + self.fwdfeedpitch*velo_des_body[0, 0]
-        roll_cmd = self.Kp_roll*proportion_term[2, 0] + self.Kd_roll*deri_term[2, 0] + self.fwdfeedroll*velo_des_body[2, 0]
+            pitch_cmd = self.Kp_pitch*proportion_term[0, 0] + self.Kd_pitch*deri_term[0, 0] + self.fwdfeedpitch*velo_des_body[0, 0]
+            roll_cmd = self.Kp_roll*proportion_term[1, 0] + self.Kd_roll*deri_term[1, 0] + self.fwdfeedroll*velo_des_body[1, 0]
 
-        vz_cmd = point_ref_1[4, 0] / self.vz_max * 100.0 + self.Kp_height * (point_ref_1[1, 0] - self.posi_now[1, 0])
+            vz_cmd = point_ref_1[5, 0] / self.vz_max * 100.0 + self.Kp_height * (point_ref_1[2, 0] - self.posi_now[2, 0])
 
-        if self.yaw_des == 0.0:
-            yaw_rate_cmd = -1.0 * yaw_rate_cmd
-        else:
-            yaw_rate_cmd = 1.0 * yaw_rate_cmd
+            roll_cmd = -1 * roll_cmd
+            
+            if self.yaw_des == 0.0:
+                yaw_rate_cmd = -1.0 * yaw_rate_cmd
+            else:
+                yaw_rate_cmd = 1.0 * yaw_rate_cmd
+
 
         return roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd
 
@@ -500,6 +512,11 @@ class MamboControllerInterface(object):
             ax0.set_xlabel("Z Label")
             ax0.set_ylabel("X Label")
             ax0.set_zlabel("Y Label")
+
+            X = np.array(pz_list)
+            Y = np.array(px_list)
+            Z = np.array(py_list)
+
         elif self.mocap_type == "QUALISYS":
             ax0.plot(traj_ref[0, :], traj_ref[1, :], traj_ref[2, :], color="blue", linestyle="-", label="Reference Trajectory")
             ax0.plot([traj_ref[0, 0]], [traj_ref[1, 0]], [traj_ref[2, 0]], marker="D", label="Reference Origin")
@@ -510,12 +527,12 @@ class MamboControllerInterface(object):
             ax0.set_xlabel("X Label")
             ax0.set_ylabel("Y Label")
             ax0.set_zlabel("Z Label")
-        else:
-            raise Exception("Please specify the supported motion capture system!")
 
-        X = np.array(pz_list)
-        Y = np.array(px_list)
-        Z = np.array(py_list)
+            X = np.array(px_list)
+            Y = np.array(py_list)
+            Z = np.array(pz_list)
+            
+
         max_range = np.array([X.max()-X.min(), Y.max()-Y.min(), Z.max()-Z.min()]).max() / 2.0
         mid_x = (X.max() + X.min()) * 0.5
         mid_y = (Y.max() + Y.min()) * 0.5
