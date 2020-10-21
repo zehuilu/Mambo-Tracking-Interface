@@ -172,9 +172,8 @@ class MamboControllerInterface(object):
             self.calibrate_mambo(60)
 
             self.mambo.safe_takeoff(5)
-            print("taking off!")
-            self.mambo.fly_direct(0, 0, 0, 0, 1.0)
-            print("zero input first!")
+            print("Taking off!")
+            self.mambo.fly_direct(0, 0, 0, 0, 0.5)
 
             # Remember to change the total time!
             while self.t_now < self.t_stop:
@@ -186,7 +185,7 @@ class MamboControllerInterface(object):
                 # send positions and velocities to MATLAB via UDP
                 msg = struct.pack('dddddd', self.posi_now[0,0], self.posi_now[1,0], self.posi_now[2,0], self.velo_now[0,0], self.velo_now[1,0], self.velo_now[2,0])
                 #data_test = struct.unpack('dddddd', msg)
-                print("sending message to matlab")
+                # print("sending message to matlab")
                 self.sock_matlab.sendto(msg, self.server_address_matlab)
 
                 traj_ref, T, self.hover_flag, self.csv_length_now = csv_helper.update_csv(self.directory_traj)
@@ -197,8 +196,7 @@ class MamboControllerInterface(object):
                         self.idx_iter = 0
 
                     self.t_now = t0 - t_start
-                    print("Total Time")
-                    print(self.t_now)
+                    print("Total Time [sec]: " + str(round(self.t_now,4)))
 
                     if self.csv_length_now == self.csv_length_pre:
                         self.t_stop = T[-1]
@@ -207,11 +205,9 @@ class MamboControllerInterface(object):
 
                     # load the current and the next desired points
                     # 2-D numpy array, 6 by 1, px, py, pz, vx, vy, vz
-                    # point_ref_0 = interpolate_traj(self.t_now, T, traj_ref, 'traj')
-                    point_ref_1 = interpolate_traj(self.t_now + self.dt_traj + self.t_look_ahead, T, traj_ref, 'traj')
+                    point_ref = interpolate_traj(self.t_now + self.dt_traj + self.t_look_ahead, T, traj_ref, 'traj')
 
-                    # roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd = self.PID_controller(point_ref_0, point_ref_1)
-                    roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd = self.PID_controller(point_ref_1)
+                    roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd = self.PID_controller(point_ref)
 
                     # record
                     self.record_sysid(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, t0, data_for_csv)
@@ -231,17 +227,14 @@ class MamboControllerInterface(object):
                 self.hover_flag_pre = self.hover_flag
                 t1 = time.time()
                 self.dt = t1 - t0
-                print("time interval for fly command")
-                print(self.dt)
-                print("current time")
-                print(self.t_now)
+                print("Time duration for fly command [sec]: " + str(round(self.dt,4)))
                 self.idx_iter += 1
 
             # after the iterations(trajectory) completes
             self.mambo.fly_direct(0, 0, 0, 0, 1.0)
-            print("landing")
+            print("Landing")
             self.mambo.safe_land(5)
-            print("disconnect")
+            print("Disconnect")
             self.mambo.disconnect()
 
             # save csv file
@@ -326,7 +319,7 @@ class MamboControllerInterface(object):
         return data_for_csv
 
 
-    def PID_controller(self, point_ref_1):
+    def PID_controller(self, point_ref):
         # control input vz depends on the ultrasonic sensor, which means there shouldn't be any obstacles under the drone.
 
         # PID control gains for Vertical Velocity Command
@@ -340,14 +333,14 @@ class MamboControllerInterface(object):
             yaw_proportion_term = feedforward_yaw - sin(self.yaw_rate)
             yaw_rate_cmd = self.Kp_psi*yaw_proportion_term + self.fwdfeedyaw*feedforward_yaw 
 
-            velo_des_body = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref_1[3:6, 0], (-1, 1)))
-            proportion_term = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref_1[0:3, 0], (-1, 1)) - self.posi_now)
-            deri_term = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref_1[3:6, 0], (-1, 1))) - self.velo_body
+            velo_des_body = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref[3:6, 0], (-1, 1)))
+            proportion_term = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref[0:3, 0], (-1, 1)) - self.posi_now)
+            deri_term = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref[3:6, 0], (-1, 1))) - self.velo_body
 
             pitch_cmd = self.Kp_pitch*proportion_term[0, 0] + self.Kd_pitch*deri_term[0, 0] + self.fwdfeedpitch*velo_des_body[0, 0]
             roll_cmd = self.Kp_roll*proportion_term[2, 0] + self.Kd_roll*deri_term[2, 0] + self.fwdfeedroll*velo_des_body[2, 0]
 
-            vz_cmd = point_ref_1[4, 0] / self.vz_max * 100.0 + self.Kp_height * (point_ref_1[1, 0] - self.posi_now[1, 0])
+            vz_cmd = point_ref[4, 0] / self.vz_max * 100.0 + self.Kp_height * (point_ref[1, 0] - self.posi_now[1, 0])
 
             if self.yaw_des == 0.0:
                 yaw_rate_cmd = -1.0 * yaw_rate_cmd
@@ -362,17 +355,17 @@ class MamboControllerInterface(object):
             yaw_proportion_term = feedforward_yaw - sin(self.yaw_rate)
             yaw_rate_cmd = self.Kp_psi*yaw_proportion_term + self.fwdfeedyaw*feedforward_yaw 
 
-            velo_des_body = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref_1[3:6, 0], (-1, 1)))
-            proportion_term = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref_1[0:3, 0], (-1, 1)) - self.posi_now)
-            deri_term = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref_1[3:6, 0], (-1, 1))) - self.velo_body
+            velo_des_body = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref[3:6, 0], (-1, 1)))
+            proportion_term = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref[0:3, 0], (-1, 1)) - self.posi_now)
+            deri_term = np.dot(np.transpose(self.Rot_Mat), np.reshape(point_ref[3:6, 0], (-1, 1))) - self.velo_body
 
             pitch_cmd = self.Kp_pitch*proportion_term[0, 0] + self.Kd_pitch*deri_term[0, 0] + self.fwdfeedpitch*velo_des_body[0, 0]
             roll_cmd = self.Kp_roll*proportion_term[1, 0] + self.Kd_roll*deri_term[1, 0] + self.fwdfeedroll*velo_des_body[1, 0]
 
-            vz_cmd = point_ref_1[5, 0] / self.vz_max * 100.0 + self.Kp_height * (point_ref_1[2, 0] - self.posi_now[2, 0])
+            vz_cmd = point_ref[5, 0] / self.vz_max * 100.0 + self.Kp_height * (point_ref[2, 0] - self.posi_now[2, 0])
 
             roll_cmd = -1 * roll_cmd
-            
+
             if self.yaw_des == 0.0:
                 yaw_rate_cmd = -1.0 * yaw_rate_cmd
             else:
