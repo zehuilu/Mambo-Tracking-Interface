@@ -167,7 +167,7 @@ def make_spline(T_in, p_0, v_0, a_0, a, b, c):
     return Z_out
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     p_0 = np.array([[1.0], [1.0], [1.0]])
     v_0 = np.array([[0.0], [0.0], [0.0]])
     a_0 = np.array([[0.0], [0.0], [0.0]])

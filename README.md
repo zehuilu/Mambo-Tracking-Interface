@@ -65,9 +65,3 @@ python3 src/run_mambo.py
 After you see the reminder message in Terminal 2, run the quadrotor_RTD planner via MATLAB.
 
 
-
-**To-do**
-
-sysid data
-Desired yaw
-

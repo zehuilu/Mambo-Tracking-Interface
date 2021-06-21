@@ -165,7 +165,7 @@ class MamboControllerInterface(object):
 
     def run_LLC(self):
 
-        if not (self.flag_mambo_connection):
+        if not self.flag_mambo_connection:
             print("Mambo connection failed!")
         else:
             # calibrate the Mambo
@@ -191,7 +191,7 @@ class MamboControllerInterface(object):
                 traj_ref, T, self.hover_flag, self.csv_length_now = csv_helper.update_csv(self.directory_traj)
 
                 if not self.hover_flag:
-                    if (self.hover_flag == False) & (self.hover_flag_pre == True):
+                    if ((self.hover_flag == False) and (self.hover_flag_pre == True)):
                         t_start = t0
                         self.idx_iter = 0
 
@@ -660,9 +660,8 @@ class MamboControllerInterface(object):
 
 
 if __name__ == "__main__":
-    config_file_name = "config.json"
+    config_file_name = "config_aimslab.json"
     mocap_type = "QUALISYS"
 
     Controller = MamboControllerInterface(config_file_name, mocap_type)
     Controller.run_LLC()
-    

@@ -98,7 +98,7 @@ def update_csv(Directory):
     return traj_ref, T, hover_flag, csv_length_now
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     Directory_traj = os.getcwd() + '/traj_csv_files/'
     traj_ref, T, hover_flag, csv_length_now = update_csv(Directory_traj)
 

@@ -41,7 +41,7 @@ def interpolate_traj(x_queue, x, y, interpolate_kind):
     return y_queue
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     x = np.array([0, 2, 4, 6, 8, 10])
     y = np.array([[0, 1, 2, 3, 4, 5], [0, -1, -2, -3, -4, -5], [10, 20, 30, 40, 50, 60], [-10, -20, -30, -40, -50, -60], [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]])
     x_queue = 1

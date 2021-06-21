@@ -94,5 +94,5 @@ def main_phasespace(config_file_name):
 
 
 if __name__ == "__main__":
-    config_file_name = 'config.json'
+    config_file_name = 'config_roahmlab.json'
     main_phasespace(config_file_name)
