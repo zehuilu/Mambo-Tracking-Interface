@@ -27,7 +27,7 @@ if __name__ == "__main__":
     print("This is csv.")
     print(array_csv)
 
-    json_file = open("config.json")
-    config_data = json.load(json_file)
-    filename_csv = os.getcwd() + config_data["DIRECTORY_TRAJ"] + "traj.csv"
+    json_file = open("config_aimslab.json")
+    config_dict = json.load(json_file)
+    filename_csv = os.getcwd() + config_dict["DIRECTORY_TRAJ"] + "traj.csv"
     np.savetxt(filename_csv, array_csv, delimiter=",")

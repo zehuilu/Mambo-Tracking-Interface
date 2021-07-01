@@ -13,3 +13,4 @@
 /traj_csv_files/*
 *.csv
 /lib/__pycache__/*
+/test/__pycache__/*
