@@ -2,7 +2,7 @@
 import json
 
 # Read the configuration from the json file
-config_file_name = "config.json"
+config_file_name = "config_aimslab.json"
 json_file = open(config_file_name)
 config_data = json.load(json_file)
 

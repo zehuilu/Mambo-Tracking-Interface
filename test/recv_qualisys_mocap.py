@@ -79,5 +79,5 @@ def subscriber_callback(sock, buffersize, data_number_integer):
 
 
 if __name__ == "__main__":
-    config_file_name = 'config.json'
+    config_file_name = 'config_aimslab.json'
     subscriber_tcp_main(config_file_name)

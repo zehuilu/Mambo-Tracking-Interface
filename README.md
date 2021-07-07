@@ -1,11 +1,11 @@
-# RTD_Mambo_interface
+# Mambo-Tracking-Interface
 
 This is the Python interface for RTD and the Parrot [Mambo](https://www.parrot.com/us/drones/parrot-mambo-fpv) Quadrotor.
 
 
 # Dependencies
 
-**RTD_Mambo_interface** has been tested on Ubuntu 18.04.4 LTS with Python 3.6.9. You can use the latest version of Python 3 and dependencies. Here is the list of all dependencies this repository uses:
+**Mambo-Tracking-Interface** has been tested on Ubuntu 18.04.4 LTS with Python 3.6.9. You can use the latest version of Python 3 and dependencies. Here is the list of all dependencies this repository uses:
 ```
 Python>=3.6.9
 numpy
@@ -19,6 +19,7 @@ owl==5.1.279 # You can't download this by pip
 Use [pip](https://pip.pypa.io/en/stable/) to install the required packages:
 ```
 $ sudo pip3 install numpy scipy transforms3d matplotlib
+$ git clone https://github.com/zehuilu/Mambo-Tracking-Interface.git
 ```
 
 To install [pyparrot](https://github.com/amymcgovern/pyparrot), you can follow the official documentation [website](https://pyparrot.readthedocs.io/en/latest/installation.html).

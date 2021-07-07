@@ -36,7 +36,7 @@ def discrete_path_to_time_traj(path: list, dt: float, velocity_ave: float, inter
 
     return time_queue_vec, position_traj, velocity_traj
 
-def plot_traj(path, time_queue_vec, position_traj, velocity_traj):
+def plot_traj(path: list, time_queue_vec, position_traj, velocity_traj):
     dimension = len(path[0])
     # plot path, and position/velocity trajectories
     if dimension == 2:

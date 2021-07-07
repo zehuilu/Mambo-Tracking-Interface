@@ -152,7 +152,7 @@ class MamboControllerInterface(object):
 
         self.csv_length_now = 1
         self.csv_length_pre = -1
-        self.t_stop = 100.0 # is a large enough number
+        self.t_stop = 100.0 # initialize as a large enough number
 
         # # load gains for PID controller
         self.set_PID_gains()
@@ -196,7 +196,7 @@ class MamboControllerInterface(object):
                         self.idx_iter = 0
 
                     self.t_now = t0 - t_start
-                    print("Total Time [sec]: " + str(round(self.t_now,4)))
+                    print("Total Time [sec]: " + str(round(self.t_now, 4)))
 
                     if self.csv_length_now == self.csv_length_pre:
                         self.t_stop = T[-1]
@@ -220,8 +220,8 @@ class MamboControllerInterface(object):
                     self.mambo.fly_direct(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, self.dt_traj)
                     
                 else:
-                    print("Haven't generated csv file in MATLAB")
-                    print("You can run planner in MATLAB to generate the csv files after 1 second")
+                    print("Haven't generated trajectories as csv file.ArithmeticError")
+                    print("You can run planner to generate trajectories")
                     self.mambo.fly_direct(0.0, 0.0, 0.0, 0.0, self.dt_traj)
 
                 self.hover_flag_pre = self.hover_flag
@@ -301,7 +301,10 @@ class MamboControllerInterface(object):
 
         
         # compute the velocity
-        self.velo_now = (self.posi_now - self.posi_pre) / self.dt
+        if self.idx_iter <= 5:
+            self.velo_now = np.zeros((3,1))
+        else:
+            self.velo_now = (self.posi_now - self.posi_pre) / self.dt
         self.posi_pre = self.posi_now
 
         self.yaw_rate = (self.yaw_now - self.yaw_prev) / self.dt
@@ -376,27 +379,31 @@ class MamboControllerInterface(object):
 
 
     def record_sysid(self, roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, t0, data_for_csv):
-    # t0 is the machine timestamp
-    # record a numpy array for system id
-
+        # t0 is the machine timestamp
+        # record a numpy array for system id
         if self.idx_iter == 0:
             self.states_history_mocap = data_for_csv
             self.states_history_cmd = np.array([[yaw_rate_cmd], [pitch_cmd], [roll_cmd], [vz_cmd], [t0]], dtype=float)
-        else:
+        elif self.idx_iter > 0:
             self.states_history_mocap = np.concatenate((self.states_history_mocap, data_for_csv), axis=1)
             self.states_history_cmd = np.concatenate((self.states_history_cmd, \
                 np.array([[yaw_rate_cmd], [pitch_cmd], [roll_cmd], [vz_cmd], [t0]], dtype=float)), axis=1)
+        else:
+            pass
 
 
     def record_states_plot(self, roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd):
-    # record the states for plotting
-        self.time_plot.append(self.t_now)
+        # record the states for plotting
         if self.idx_iter == 0:
+            self.time_plot.append(self.t_now)
             self.pv_plot = np.concatenate((self.posi_now, self.velo_now), axis=0)
             self.angle_and_cmd_plot = np.array([[self.yaw_now], [self.pitch_now], [self.roll_now], [yaw_rate_cmd], [pitch_cmd], [roll_cmd], [vz_cmd]], dtype=float)
-        else:
+        elif self.idx_iter > 0:
+            self.time_plot.append(self.t_now)
             self.pv_plot = np.concatenate((self.pv_plot, np.concatenate((self.posi_now, self.velo_now), axis=0)), axis=1)
             self.angle_and_cmd_plot = np.concatenate((self.angle_and_cmd_plot, np.array([[self.yaw_now], [self.pitch_now], [self.roll_now], [yaw_rate_cmd], [pitch_cmd], [roll_cmd], [vz_cmd]], dtype=float)), axis=1)
+        else:
+            pass
 
 
     def process_and_save_csv_sysid(self, t_start):
@@ -431,17 +438,17 @@ class MamboControllerInterface(object):
         self.Kp_height = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KP_HEIGHT"])
         self.Ki_height = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KI_HEIGHT"])
         self.Kd_height = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KD_HEIGHT"])
-        #pitch/forward velocity controller gains
+        # pitch/forward velocity controller gains
         self.fwdfeedpitch = float(self.config_data["LOW_LEVEL_CONTROLLER"]["FWDFEED_PITCH"])
         self.Kp_pitch = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KP_PITCH"])
         self.Ki_pitch = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KI_PITCH"])
         self.Kd_pitch = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KD_PITCH"])
-        #roll/lateral velocity controller gains
+        # roll/lateral velocity controller gains
         self.fwdfeedroll = float(self.config_data["LOW_LEVEL_CONTROLLER"]["FWDFEED_ROLL"])
         self.Kp_roll = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KP_ROLL"])
         self.Ki_roll = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KI_ROLL"])
         self.Kd_roll = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KD_ROLL"])
-        #yaw rate controller gains
+        # yaw rate controller gains
         self.fwdfeedyaw = float(self.config_data["LOW_LEVEL_CONTROLLER"]["FWDFEED_YAW"])
         self.Kp_psi = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KP_YAW"])
         self.Ki_psi = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KI_YAW"])

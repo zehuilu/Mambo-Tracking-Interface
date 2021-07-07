@@ -85,7 +85,7 @@ async def main(config_file_name):
 
     # Wait for a connection
     print("waiting for a connection")
-    print("If you're using it for mambo RTD, you can run the LLC now.")
+    print("You can execute src/run_mambo.py now.")
     connection_tcp, client_address = sock_tcp.accept()
     print("Built connection with", client_address)
 
