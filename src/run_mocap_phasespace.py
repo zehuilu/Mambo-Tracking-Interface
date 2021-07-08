@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
-import os
-import sys
-sys.path.append(os.getcwd()+'/lib')
-
-from owl import Context, Type
 import socket
 import numpy as np
 import transforms3d
 import time
 import json
+with pathmagic.context():
+    from owl import Context, Type
 
 
 def main_phasespace(config_file_name):

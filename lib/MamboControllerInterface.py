@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import os
-import sys
-sys.path.append(os.getcwd()+'/lib')
 import socket
 import time
 import json
@@ -14,9 +12,9 @@ from mpl_toolkits.mplot3d import Axes3D
 from pyparrot.Minidrone import Mambo
 from math import degrees, radians, sin, cos
 import numpy as np
-
-import csv_helper_module as csv_helper
-from interpolate_traj import interpolate_traj
+with pathmagic.context():
+    import csv_helper_module as csv_helper
+    from interpolate_traj import interpolate_traj
 
 
 class MamboControllerInterface(object):
@@ -299,7 +297,6 @@ class MamboControllerInterface(object):
             self.mambo.smart_sleep(1.0)
             raise Exception("Mambo flew outside the mocap area! Emergency Landing!")
 
-        
         # compute the velocity
         if self.idx_iter <= 5:
             self.velo_now = np.zeros((3,1))

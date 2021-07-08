@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-import os
-import sys
-sys.path.append(os.getcwd()+'/lib')
-from MamboControllerInterface import MamboControllerInterface
+with pathmagic.context():
+    from MamboControllerInterface import MamboControllerInterface
 
 
 if __name__ == "__main__":

@@ -1,7 +1,4 @@
 #!/usr/bin/python3
-import os
-import sys
-sys.path.append(os.getcwd()+'/lib')
 import socket
 import time
 import json
