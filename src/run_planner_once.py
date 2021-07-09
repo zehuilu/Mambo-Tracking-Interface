@@ -106,7 +106,8 @@ if __name__ == "__main__":
     dt = 0.1
     velocity_ave = 0.25
     # generate trajectories
-    time_queue_vec, position_traj, velocity_traj = discrete_path_to_time_traj(path_qualisys, dt, velocity_ave, interp_kind='quadratic')
+    time_queue_vec, position_traj, velocity_traj = discrete_path_to_time_traj(
+        path_qualisys, dt, velocity_ave, interp_kind='quadratic', ini_velocity_zero_flag=True)
 
     # plot path, and position/velocity trajectories
     plot_traj(path_qualisys, time_queue_vec, position_traj, velocity_traj)

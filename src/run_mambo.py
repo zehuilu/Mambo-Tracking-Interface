@@ -8,4 +8,4 @@ if __name__ == "__main__":
     mocap_string = "QUALISYS"
 
     Controller = MamboControllerInterface(config_file_name, mocap_string)
-    Controller.run_LLC()
+    Controller.run_controller()

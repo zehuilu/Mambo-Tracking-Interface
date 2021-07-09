@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 
-def discrete_path_to_time_traj(path: list, dt: float, velocity_ave: float, interp_kind: str):
+def discrete_path_to_time_traj(path: list, dt: float, velocity_ave: float, interp_kind: str, ini_velocity_zero_flag: bool):
     dimension = len(path[0])
     # 1d array, each element is the distance between the current node position and the previou node position
     distance_vec = np.sum(np.abs(np.diff(path, axis=0))**2, axis=-1) ** 0.5
@@ -31,7 +31,8 @@ def discrete_path_to_time_traj(path: list, dt: float, velocity_ave: float, inter
     # compute the gradient of position as velocity
     velocity_traj = np.gradient(position_traj, time_queue_vec, axis=0, edge_order=2)
     # the velocity at start and goal are zeros
-    velocity_traj[0] = np.zeros(dimension)
+    if ini_velocity_zero_flag:
+        velocity_traj[0] = np.zeros(dimension)
     velocity_traj[-1] = np.zeros(dimension)
 
     return time_queue_vec, position_traj, velocity_traj
@@ -106,7 +107,8 @@ if __name__ == "__main__":
     velocity_ave = 0.5
 
     # call discrete_path_to_time_traj to generate trajectories
-    time_queue_vec, position_traj, velocity_traj = discrete_path_to_time_traj(path, dt, velocity_ave, interp_kind='linear')
+    time_queue_vec, position_traj, velocity_traj = discrete_path_to_time_traj(
+        path, dt, velocity_ave, interp_kind='linear', ini_velocity_zero_flag=True)
 
     # plot path, and position/velocity trajectories
     plot_traj(path, time_queue_vec, position_traj, velocity_traj)

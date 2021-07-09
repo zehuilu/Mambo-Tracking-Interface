@@ -65,34 +65,29 @@ class MamboControllerInterface(object):
     Ki_psi: float
     Kd_psi: float
 
-
     def __init__(self, config_file_name: str, mocap_string: str):
         """
-        Constructor
+        Initialize the controller interface.
         """
-
         # Read the configuration from the json file
         json_file = open(config_file_name)
         self.config_data = json.load(json_file)
         self.mocap_type = mocap_string
         self.flag_tuning_LLC = bool(self.config_data["FLAG_TUNING_LLC"])
-
         if not ((self.mocap_type == "PHASESPACE") or (self.mocap_type == "QUALISYS")):
             raise Exception("Please specify the supported motion capture system!")
 
         # desired yaw angle, if fly backward, choose pi; otherwise, choose 0.0, in radians
         self.yaw_des = float(self.config_data["LOW_LEVEL_CONTROLLER"]["YAW_DES"])
 
-        # make my mambo object
         # remember to set True/False for the wifi depending on if you are using the wifi or the BLE to connect
-    
         self.mambo = Mambo(self.config_data["MAMBO"]["BLUETOOTH_ADDRESS"], use_wifi=False)
         self.flag_mambo_connection = self.mambo.connect(num_retries=3)
         print("Mambo connected: %s" % self.flag_mambo_connection)
 
         # Create a TCP/IP socket
         self.sock_states = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # Connect the socket to the port where the server is listening
+        # Connect the socket to the port where the mocap server is publishing
         server_address_states = (self.config_data[self.mocap_type]["IP_STATES_ESTIMATION"], int(self.config_data[self.mocap_type]["PORT_STATES_ESTIMATION"]))
         print("connecting to", server_address_states)
         self.sock_states.connect(server_address_states)
@@ -117,8 +112,6 @@ class MamboControllerInterface(object):
         self.vz_max = float(self.config_data["MAMBO"]["VERTICAL_SPEED_MAX"]) # in m/s
         self.yaw_rate_max = float(self.config_data["MAMBO"]["YAW_RATE_MAX"]) # in radians/sec
 
-        # initialize some variables
-
         # initialize the current position and yaw angle
         self.t_look_ahead = float(self.config_data["LOW_LEVEL_CONTROLLER"]["TIME_LOOK_AHEAD"])
         self.dt_traj = float(self.config_data["LOW_LEVEL_CONTROLLER"]["TIME_STEP"])
@@ -126,7 +119,6 @@ class MamboControllerInterface(object):
         self.yaw_prev = 0.5
         self.posi_pre = np.array([[0.0], [0.0], [0.0]])
         self.velo_now = np.array([[0.0], [0.0], [0.0]])
-
         self.posi_now = np.array([[0.0], [0.0], [0.0]])
         self.Rot_Mat = np.identity(3)
         self.velo_body = np.array([[0.0], [0.0], [0.0]])
@@ -134,35 +126,31 @@ class MamboControllerInterface(object):
         self.pitch_now = 0.0
         self.roll_now = 0.0
         self.yaw_rate = 0.0
-
         self.idx_iter = 0
         self.dt = copy.deepcopy(self.dt_traj)
         self.t_now = 0.0
         self.hover_flag = True
         self.hover_flag_pre = True
-
         self.states_history_mocap = []
         self.states_history_cmd = []
-
         self.time_plot = []
         self.pv_plot = np.array([[0.0], [0.0]])
         self.angle_and_cmd_plot = np.array([[0.0], [0.0]])
-
         self.csv_length_now = 1
         self.csv_length_pre = -1
-        self.t_stop = 100.0 # initialize as a large enough number
+        self.t_stop = 100.0  # initialize as a large enough number
 
-        # # load gains for PID controller
+        # load gains for PID controller
         self.set_PID_gains()
-
         # if flag==1, don't remove current csv files for tuning LLC
         # if flag==0, remove all the current file under this directory
         if not self.flag_tuning_LLC:
             csv_helper.remove_traj_ref_lib(self.directory_delete)
 
-
-    def run_LLC(self):
-
+    def run_controller(self):
+        """
+        The main function to run the controller.
+        """
         if not self.flag_mambo_connection:
             print("Mambo connection failed!")
         else:
@@ -187,36 +175,26 @@ class MamboControllerInterface(object):
                 self.sock_matlab.sendto(msg, self.server_address_matlab)
 
                 traj_ref, T, self.hover_flag, self.csv_length_now = csv_helper.update_csv(self.directory_traj)
-
                 if not self.hover_flag:
                     if ((self.hover_flag == False) and (self.hover_flag_pre == True)):
                         t_start = t0
                         self.idx_iter = 0
-
                     self.t_now = t0 - t_start
                     print("Total Time [sec]: " + str(round(self.t_now, 4)))
-
                     if self.csv_length_now == self.csv_length_pre:
                         self.t_stop = T[-1]
-
                     self.csv_length_pre = self.csv_length_now
-
                     # load the current and the next desired points
                     # 2-D numpy array, 6 by 1, px, py, pz, vx, vy, vz
                     point_ref = interpolate_traj(self.t_now + self.dt_traj + self.t_look_ahead, T, traj_ref, 'traj')
-
                     roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd = self.PID_controller(point_ref)
-
                     # record
                     self.record_sysid(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, t0, data_for_csv)
-
                     # p, v, yaw, pitch, roll, yaw, pitch, roll, vz
                     self.record_states_plot(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd)
-
                     # send commands
-                    #mambo.smart_sleep(self.dt_traj)
+                    # mambo.smart_sleep(self.dt_traj)
                     self.mambo.fly_direct(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, self.dt_traj)
-                    
                 else:
                     print("Haven't generated trajectories as csv file.ArithmeticError")
                     print("You can run planner to generate trajectories")
@@ -234,22 +212,19 @@ class MamboControllerInterface(object):
             self.mambo.safe_land(5)
             print("Disconnect")
             self.mambo.disconnect()
-
             # save csv file
             self.process_and_save_csv_sysid(t_start)
-
             battery_after = self.mambo.sensors.battery
             print("The battery percentage is ", battery_after)
             print("The used battery percentage is", self.battery_ini - battery_after)
-
             # plot
             if bool(self.config_data["FLAG_PLOT"]):
                 self.visuaslize_result(traj_ref, T)
 
-
     def update_states_mocap(self):
-        # Get real-time states from mocap system
-
+        """
+        Update the positions from the motion capture system.
+        """
         msg = self.sock_states.recv(self.data_bytes_max)
         if msg:
             data = np.frombuffer(msg, dtype=float)
@@ -318,7 +293,6 @@ class MamboControllerInterface(object):
 
         return data_for_csv
 
-
     def PID_controller(self, point_ref):
         # control input vz depends on the ultrasonic sensor, which means there shouldn't be any obstacles under the drone.
 
@@ -327,7 +301,6 @@ class MamboControllerInterface(object):
         # control input vz depends on the ultrasonic sensor, which means there shouldn't be any obstacles under the drone.
 
         if self.mocap_type == "PHASESPACE":
-            
             feedforward_yaw = -1.0 * (sin(self.yaw_now) - sin(self.yaw_des))
 
             yaw_proportion_term = feedforward_yaw - sin(self.yaw_rate)
@@ -347,10 +320,8 @@ class MamboControllerInterface(object):
             else:
                 yaw_rate_cmd = 1.0 * yaw_rate_cmd
 
-
         elif self.mocap_type == "QUALISYS":
             feedforward_yaw = sin(self.yaw_now) - sin(self.yaw_des)
-
 
             yaw_proportion_term = feedforward_yaw - sin(self.yaw_rate)
             yaw_rate_cmd = self.Kp_psi*yaw_proportion_term + self.fwdfeedyaw*feedforward_yaw 
@@ -371,9 +342,7 @@ class MamboControllerInterface(object):
             else:
                 yaw_rate_cmd = 1.0 * yaw_rate_cmd
 
-
         return roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd
-
 
     def record_sysid(self, roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, t0, data_for_csv):
         # t0 is the machine timestamp
@@ -388,7 +357,6 @@ class MamboControllerInterface(object):
         else:
             pass
 
-
     def record_states_plot(self, roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd):
         # record the states for plotting
         if self.idx_iter == 0:
@@ -402,11 +370,10 @@ class MamboControllerInterface(object):
         else:
             pass
 
-
     def process_and_save_csv_sysid(self, t_start):
         # save the data for system id
         time_name = time.strftime("%Y%m%d%H%M%S")
-        FileName = self.directory_sysid + time_name + '.csv'
+        file_name = self.directory_sysid + time_name + '.csv'
 
         t_queue = self.states_history_mocap[-1, :]
         t_have = self.states_history_cmd[-1, :]
@@ -418,18 +385,18 @@ class MamboControllerInterface(object):
         states_history_uncompleted = np.concatenate((self.states_history_mocap, cmd_queue), axis=0)
         states_history = np.concatenate((states_history_uncompleted, np.reshape(t_relative,(1,np.size(t_relative)))), axis=0)
 
-        np.savetxt(FileName, states_history, delimiter=",")
+        np.savetxt(file_name, states_history, delimiter=",")
 
         # only for debugging
-        #FileName1 = Directory_sysid + time_name + 'test.csv'
-        #t_re_temp = t_have - t_start
-        #cmd_history_test = np.concatenate((states_history_cmd, np.reshape(t_re_temp,(1,np.size(t_re_temp)))), axis=0)
-        #np.savetxt(FileName1, cmd_history_test, delimiter=",")
-
+        # file_name_1 = Directory_sysid + time_name + 'test.csv'
+        # t_re_temp = t_have - t_start
+        # cmd_history_test = np.concatenate((states_history_cmd, np.reshape(t_re_temp,(1,np.size(t_re_temp)))), axis=0)
+        # np.savetxt(file_name_1, cmd_history_test, delimiter=",")
 
     def set_PID_gains(self):
-        # load gains for PID controller
-
+        """
+        load gains for PID controller
+        """
         # height controller gains
         self.fwdfeedheight = float(self.config_data["LOW_LEVEL_CONTROLLER"]["FWDFEED_HEIGHT"])
         self.Kp_height = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KP_HEIGHT"])
@@ -451,7 +418,6 @@ class MamboControllerInterface(object):
         self.Ki_psi = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KI_YAW"])
         self.Kd_psi = float(self.config_data["LOW_LEVEL_CONTROLLER"]["KD_YAW"])
 
-
     def calibrate_mambo(self, battery_lb: int):
         # calibrate the Mambo
         self.mambo.flat_trim()
@@ -466,18 +432,14 @@ class MamboControllerInterface(object):
         if not (result_set_tilt and result_set_vz):
             raise Exception("Failed to set the maximum tilt angle and vz!")
         print("Setup successed!")
-
         # get the state information
         self.mambo.smart_sleep(1)
         self.mambo.ask_for_state_update()
         self.mambo.smart_sleep(1)
-
         self.battery_ini = self.mambo.sensors.battery
         print("The battery percentage is ", self.battery_ini)
-
         if self.battery_ini <= battery_lb:
             raise Exception("The battery voltage is low!!!")
-
 
     def visuaslize_result(self, traj_ref, T):
         # load the data
@@ -509,11 +471,9 @@ class MamboControllerInterface(object):
             ax0.set_xlabel("Z Label")
             ax0.set_ylabel("X Label")
             ax0.set_zlabel("Y Label")
-
             X = np.array(pz_list)
             Y = np.array(px_list)
             Z = np.array(py_list)
-
         elif self.mocap_type == "QUALISYS":
             ax0.plot(traj_ref[0, :], traj_ref[1, :], traj_ref[2, :], color="blue", linestyle="-", label="Reference Trajectory")
             ax0.plot([traj_ref[0, 0]], [traj_ref[1, 0]], [traj_ref[2, 0]], marker="D", label="Reference Origin")
@@ -524,12 +484,10 @@ class MamboControllerInterface(object):
             ax0.set_xlabel("X Label")
             ax0.set_ylabel("Y Label")
             ax0.set_zlabel("Z Label")
-
             X = np.array(px_list)
             Y = np.array(py_list)
             Z = np.array(pz_list)
             
-
         max_range = np.array([X.max()-X.min(), Y.max()-Y.min(), Z.max()-Z.min()]).max() / 2.0
         mid_x = (X.max() + X.min()) * 0.5
         mid_y = (Y.max() + Y.min()) * 0.5
@@ -578,7 +536,6 @@ class MamboControllerInterface(object):
         ax6.set_ylabel("Roll [radian]")
         plt.tight_layout()
 
-        
         # plot 3, position tracking errors
         p_actual_des = interpolate_traj(self.time_plot, T, traj_ref, 'traj')[0 : 3, :]
         error = p_actual_des - self.pv_plot[0 : 3, :]
@@ -599,7 +556,6 @@ class MamboControllerInterface(object):
         ax9.set_ylabel("position error [m]")
         plt.tight_layout()
         
-
         # plot 4, inputs which were sent to the Mambo
         fig_4, ((ax10, ax11), (ax12, ax13)) = plt.subplots(2, 2)
         fig_4.suptitle("Control commands")
@@ -668,4 +624,4 @@ if __name__ == "__main__":
     mocap_type = "QUALISYS"
 
     Controller = MamboControllerInterface(config_file_name, mocap_type)
-    Controller.run_LLC()
+    Controller.run_controller()

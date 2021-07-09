@@ -5,7 +5,6 @@ import json
 import time
 import numpy as np
 import transforms3d
-
 import asyncio
 import xml.etree.ElementTree as ET
 import pkg_resources
@@ -13,9 +12,11 @@ import qtm
 
 
 def create_body_index(xml_string):
-    """ Extract a name to index dictionary from 6-DOF settings xml """
-    xml = ET.fromstring(xml_string)
+    """
+    Extract a name to index dictionary from 6-DOF settings xml
+    """
 
+    xml = ET.fromstring(xml_string)
     body_to_index = {}
     for index, body in enumerate(xml.findall("*/Body/Name")):
         body_to_index[body.text.strip()] = index
@@ -25,9 +26,9 @@ def create_body_index(xml_string):
 
 def publisher_tcp_main(config_data):
     """
-    The following two lines show what is json_file_data
+    The following two lines show how to get config_data:
         json_file = open('mocap_config.json')
-        json_file_data = json.load(json_file)
+        config_data = json.load(json_file)
     """
 
     # IP for publisher
@@ -102,15 +103,11 @@ async def main(config_file_name):
             # concatenate the position and rotation matrix vertically
             msg = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0) + rotation.matrix + (t_now, ), dtype=float).tostring()
 
-
-
             # rotation.matrix is a tuple with 9 elements.
-            
             # rotation_np = np.asarray(rotation.matrix, dtype=float).reshape(3, 3)
             # quat = transforms3d.quaternions.mat2quat(rotation_np)
             # data = np.array([position.x/1000.0, position.y/1000.0, position.z/1000.0, quat[0], quat[1], quat[2], quat[3], t_now], dtype=float)
             # msg = data.tostring()
-
 
             connection_tcp.sendall(msg)
             # print("6-DOF data sent via TCP!")
@@ -129,7 +126,6 @@ async def main(config_file_name):
             # print("roll")
             # print(math.degrees(roll_now))
 
-        
         else:
             # error
             raise Exception("There is no such a rigid body!")
