@@ -7,10 +7,11 @@
 *.log
 *.log*
 *.pyc
-/.vscode/*
+*.csv
 /lib/owl.py
+/.vscode/*
 /sysid_data/*
 /traj_csv_files/*
-*.csv
 /lib/__pycache__/*
 /test/__pycache__/*
+/scripts/__pycache__/*

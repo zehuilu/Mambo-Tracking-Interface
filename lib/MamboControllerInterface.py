@@ -12,9 +12,8 @@ from mpl_toolkits.mplot3d import Axes3D
 from pyparrot.Minidrone import Mambo
 from math import degrees, radians, sin, cos
 import numpy as np
-with pathmagic.context():
-    import csv_helper_module as csv_helper
-    from interpolate_traj import interpolate_traj
+import csv_helper
+from interpolate_traj import interpolate_traj
 
 
 class MamboControllerInterface(object):

@@ -6,34 +6,41 @@ from mpl_toolkits.mplot3d import Axes3D
 
 
 def discrete_path_to_time_traj(path: list, dt: float, velocity_ave: float, interp_kind: str, ini_velocity_zero_flag: bool):
-    dimension = len(path[0])
-    # 1d array, each element is the distance between the current node position and the previou node position
-    distance_vec = np.sum(np.abs(np.diff(path, axis=0))**2, axis=-1) ** 0.5
-    # 1d array, each element is the duration between two adjacent nodes
-    duration_vec = distance_vec / velocity_ave
+    # if the path is not empty
+    if path:
+        dimension = len(path[0])
+        # 1d array, each element is the distance between the current node position and the previou node position
+        distance_vec = np.sum(np.abs(np.diff(path, axis=0))**2, axis=-1) ** 0.5
+        # 1d array, each element is the duration between two adjacent nodes
+        duration_vec = distance_vec / velocity_ave
 
-    # time stamp vector for input path
-    time_vec = [0.0]
-    time_vec.extend(np.cumsum(duration_vec))
+        # time stamp vector for input path
+        time_vec = [0.0]
+        time_vec.extend(np.cumsum(duration_vec))
 
-    # generate a queue time trajectory, the time interval is dt
-    t_end = round(time_vec[-1] - time_vec[-1] % dt, 2)
-    time_queue_vec = np.arange(time_vec[0], t_end, dt).tolist()
-    time_queue_vec.append(round(time_vec[-1], 2))
+        # generate a queue time trajectory, the time interval is dt
+        t_end = round(time_vec[-1] - time_vec[-1] % dt, 2)
+        time_queue_vec = np.arange(time_vec[0], t_end, dt).tolist()
+        time_queue_vec.append(round(time_vec[-1], 2))
 
-    boundary = (path[0], path[-1])
-    f = interpolate.interp1d(time_vec, path, kind=interp_kind,
-        bounds_error=False, fill_value=boundary, axis=0)
+        boundary = (path[0], path[-1])
+        f = interpolate.interp1d(time_vec, path, kind=interp_kind,
+            bounds_error=False, fill_value=boundary, axis=0)
 
-    # each row is a instance of position
-    position_traj = f(time_queue_vec)
+        # each row is a instance of position
+        position_traj = f(time_queue_vec)
 
-    # compute the gradient of position as velocity
-    velocity_traj = np.gradient(position_traj, time_queue_vec, axis=0, edge_order=2)
-    # the velocity at start and goal are zeros
-    if ini_velocity_zero_flag:
-        velocity_traj[0] = np.zeros(dimension)
-    velocity_traj[-1] = np.zeros(dimension)
+        # compute the gradient of position as velocity
+        velocity_traj = np.gradient(position_traj, time_queue_vec, axis=0, edge_order=2)
+        # the velocity at start and goal are zeros
+        if ini_velocity_zero_flag:
+            velocity_traj[0] = np.zeros(dimension)
+        velocity_traj[-1] = np.zeros(dimension)
+    else:
+        print("This path is empty. The route is infeasible.")
+        time_queue_vec = []
+        position_traj = []
+        velocity_traj = []
 
     return time_queue_vec, position_traj, velocity_traj
 
