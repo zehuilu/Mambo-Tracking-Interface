@@ -15,7 +15,13 @@
         "PORT_STATES_ESTIMATION": "9001",
         "DATA_NUMBERS_STATES_ESTIMATION": "13",
         "DATA_BYTES_MAX": "6656",
-        "NAME_SINGLE_BODY": "mambo_01"
+        "NAME_SINGLE_BODY": "mambo_01",
+
+        "NAME_OBSTACLE": "obs_01",
+        "IP_OBS_POSITION": "127.0.0.1",
+        "PORT_OBS_POSITION": "9100",
+        "DATA_NUMBERS_OBS": "3",
+        "DATA_BYTES_MAX_OBS": "192"
     },
 
     "MAMBO": {
@@ -61,7 +67,8 @@
         "AGENT_00": {
             "IP": "127.0.0.1",
             "PORT_TRAJ": "10000",
-            "PORT_SIZE": "10001"
+            "DATA_NUMBERS_TRAJ": "210",
+            "DATA_BYTES_MAX": "6720"
         }
     },
 

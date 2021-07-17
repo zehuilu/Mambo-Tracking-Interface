@@ -38,6 +38,20 @@ def publisher_tcp_main(config_data: dict):
     sock_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     return sock_tcp, server_address_tcp
 
+def publisher_udp_obs(config_data: dict):
+    """
+    Create a UDP socket to publish the positions of an obstacle.
+    """
+    # IP for publisher
+    HOST_OBS = config_data["QUALISYS"]["IP_OBS_POSITION"]
+    # Port for publisher
+    PORT_OBS = int(config_data["QUALISYS"]["PORT_OBS_POSITION"])
+
+    server_address_obs = (HOST_OBS, PORT_OBS)
+    # Create a UDP socket
+    sock_obs = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    return sock_obs, server_address_obs
+
 async def main(config_file_name):
     """ Main function """
     # Read the configuration from the json file
@@ -66,12 +80,18 @@ async def main(config_file_name):
     body_index = create_body_index(xml_string)
     # the one we want to access
     wanted_body = config_data["QUALISYS"]["NAME_SINGLE_BODY"]
+    # the obstacle
+    obs_body = config_data["QUALISYS"]["obs_01"]
 
     # Create a TCP/IP socket for states estimation streaming
     sock_tcp, server_address_tcp = publisher_tcp_main(config_data)
 
+    # Create a UDP socket for streaming the positions of an obstacle
+    sock_obs, server_address_obs = publisher_udp_obs(config_data)
+
     # Bind the socket to the port
     sock_tcp.bind(server_address_tcp)
+    sock_obs.bind(server_address_obs)
 
     # Listen for incoming connections
     sock_tcp.listen()
@@ -120,6 +140,17 @@ async def main(config_file_name):
             # print(math.degrees(pitch_now))
             # print("roll")
             # print(math.degrees(roll_now))
+
+
+        if obs_body is not None and obs_body in body_index:
+            # Extract one specific body
+            obs_index = body_index[obs_body]
+            position, rotation = bodies[obs_index]
+            # print(obs_body)
+
+            # send positions via UDP
+            msg = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0), dtype=float).tostring()
+            sock_obs.sendall(msg, server_address_obs)
 
         else:
             # error

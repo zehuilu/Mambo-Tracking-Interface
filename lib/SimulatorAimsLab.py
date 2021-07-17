@@ -23,40 +23,49 @@ class SimulatorAimsLab(Simulator):
         # generate random obstacles
         self.generate_random_obs(30, [0.2,0.2])
 
-    def qualisys_to_map_index_all(self, agents_positions_qualisys: list, targets_positions_qualisys: list):
+    def qualisys_to_map_index(self, position_qualisys: list):
         """
-        Transform the qualisys coordinates (meter) of agents and targets to the map array (index) coordinates.
+        Transform a single qualisys coordinate (meter) to a map array (index) coordinate.
         NOTE: to speed up the transformation over a set of coordinates, a vectorization function can be defined.
 
         Input:
-            agents_positions_qualisys: [[px0,py0,pz0], [px1,py1,pz1], ...]
-            targets_positions_qualisys: [[px0,py0,pz0], [px1,py1,pz1], ...]
+            position_qualisys: [px0,py0,pz0]
 
         Output:
-            agents_positions_index: [x0,y0, x1,y1, x2,y2, ...]
-            targets_positions_index: [x0,y0, x1,y1, x2,y2, ...]
+            position_index: [x0, y0]
         """
         # qualisys coordinate to map array coordinate (meter)
-        agents_positions_meter = []
-        for idx in range(len(agents_positions_qualisys)):
-            agents_positions_meter.append(coord_qualisys.qualisys_to_map_meter(agents_positions_qualisys[idx]))
-
-        targets_positions_meter = []
-        for idx in range(len(targets_positions_qualisys)):
-            targets_positions_meter.append(coord_qualisys.qualisys_to_map_meter(targets_positions_qualisys[idx]))
-
+        positions_meter = coord_qualisys.qualisys_to_map_meter(position_qualisys)
         # map array coordinate (meter) to map array coordinate (index)
-        agents_positions_index = []
-        for idx in range(len(agents_positions_meter)):
-            agent_position_meter_now = agents_positions_meter[idx]
-            agents_positions_index.extend(self.position_to_map_index(agent_position_meter_now[:-1]))  # 2D, no height
+        position_index = self.position_to_map_index(positions_meter[:-1])  # 2D, no height
+        return position_index
 
-        targets_positions_index = []
-        for idx in range(len(targets_positions_meter)):
-            target_position_meter_now = targets_positions_meter[idx]
-            targets_positions_index.extend(self.position_to_map_index(target_position_meter_now[:-1]))  # 2D, no height
+    def qualisys_to_map_index_all(self, positions_qualisys: list):
+        """
+        Transform a list of qualisys coordinates (meter) to the map array (index) coordinates.
+        NOTE: to speed up the transformation over a set of coordinates, a vectorization function can be defined.
 
-        return agents_positions_index, targets_positions_index
+        Input:
+            positions_qualisys: [[px0,py0,pz0], [px1,py1,pz1], ...]
+
+        Output:
+            positions_index: [x0,y0, x1,y1, x2,y2, ...]
+        """
+        # # qualisys coordinate to map array coordinate (meter)
+        # positions_meter = []
+        # for idx in range(len(positions_qualisys)):
+        #     positions_meter.append(coord_qualisys.qualisys_to_map_meter(positions_qualisys[idx]))
+
+        # # map array coordinate (meter) to map array coordinate (index)
+        # positions_index = []
+        # for idx in range(len(positions_meter)):
+        #     position_meter_now = positions_meter[idx]
+        #     positions_index.extend(self.position_to_map_index(position_meter_now[:-1]))  # 2D, no height
+
+        positions_index = list()
+        for idx in range(len(positions_qualisys)):
+            positions_index.extend(self.qualisys_to_map_index(positions_qualisys[idx]))
+        return positions_index
 
     def path_index_to_qualisys(self, path_index: list, height: float):
         """
@@ -111,9 +120,35 @@ class SimulatorAimsLab(Simulator):
         Output:
             path_qualisys_all: a 3D list for the discrete paths of multiple agents, path_qualisys = path_qualisys_all[0]
         """
-        path_qualisys_all = []
+        path_qualisys_all = list()
         for idx in range(len(path_index_all)):
             path_qualisys_now = self.path_index_to_qualisys(path_index_all[idx], heights_all[idx])
             path_qualisys_all.append(path_qualisys_now)
-
         return path_qualisys_all
+
+    def update_obs_map(self, position_obs_qualisys: list, size_obs_qualisys: list):
+        """
+        Update the map based on a single obstacle's position and its size, assuming the obstacle is a rectangular.
+
+        Input:
+            position_obs_qualisys: [px, py, pz] (meter)
+            size_obs_qualisys: [x, y] (meter)
+                size x is the height in the map, and size y is the width in the map.
+        """
+        # obs_center_index = [height, width]
+        obs_center_index = self.qualisys_to_map_index(position_obs_qualisys)
+
+        # the half number of index cells in each direction
+        half_width_index = max(int(size_obs_qualisys[1]*self.resolution/2), 1)
+        half_height_index = max(int(size_obs_qualisys[0]*self.resolution/2), 1)
+
+        # the range of index in each direction
+        min_height_index = max(obs_center_index[0]-half_height_index, 0)
+        max_height_index = min(obs_center_index[0]+half_height_index, self.map_height-1)
+
+        min_width_index = max(obs_center_index[1]-half_width_index, 0)
+        max_width_index = min(obs_center_index[1]+half_width_index, self.width-1)
+
+        # update the map
+        self.map_array[min_height_index : max_height_index+1][:, min_width_index : max_width_index+1] = 
+            self.value_obs * np.ones((max_height_index-min_height_index+1, max_width_index-min_width_index+1))

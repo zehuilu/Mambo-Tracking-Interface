@@ -13,6 +13,7 @@ with pathmagic.context(EXTERNAL_FLAG=True):
     from SimulatorAimsLab import SimulatorAimsLab
     from discrete_path_to_time_traj import discrete_path_to_time_traj, plot_traj
 
+
 class SocketQualisys(object):
     def __init__(self, config_data: dict):
         """
@@ -53,6 +54,9 @@ class SocketQualisys(object):
 
 
 def generate_trajectory(path_index: list, agent_position_qualisys_now: list, velocity_ave: float, dt: float):
+    """
+    A multi-threading function. For a single agent, takes in the desired index path, outputs the desired time trajectory.
+    """
     # transform path index to qualisys coordinates (meter)
     path_qualisys = MySimulator.path_index_to_qualisys(path_index, agent_position_qualisys_now[2])
 
@@ -98,8 +102,8 @@ if __name__ == "__main__":
 
         # transform qualisys coordinates (meter) to map array (index)
         t0 = time.time()
-        agent_position_index, targets_position_index = MySimulator.qualisys_to_map_index_all(
-            agent_position_qualisys, targets_position_qualisys)
+        agent_position_index = MySimulator.qualisys_to_map_index_all(agent_position_qualisys)
+        targets_position_index = MySimulator.qualisys_to_map_index_all(targets_position_qualisys)
         t1 = time.time()
         print("Qualisys coordinates to map index. Time used [sec]: " + str(t1 - t0))
 
@@ -111,19 +115,17 @@ if __name__ == "__main__":
         t1 = time.time()
         print("High-level planning. Time used [sec]: " + str(t1 - t0))
 
-
         # multi-threading for generate trajectories for multiple agents
         future_list = list()
         for idx in range(len(agent_position_qualisys)):
             executor = futures.ThreadPoolExecutor()
-            future = executor.submit(generate_trajectory, path_all_agents[idx], agent_position_qualisys[idx][2], 0.25, 0.1)
+            future = executor.submit(generate_trajectory, path_all_agents[idx], agent_position_qualisys[idx], 0.25, 0.1)
             future_list.append(future)
-            
+
+        # get the results
         for idx in range(len(future_list)):
             array_csv = future_list[idx].result()
-
             # output trajectories as a CSV file
-            array_csv = np.vstack((time_queue_vec, np.array(position_traj).T, np.array(velocity_traj).T))
             agent_name = "agent_" + str(idx) + "_"
             time_name = time.strftime("%Y%m%d%H%M%S")
             filename_csv = os.getcwd() + config_data["DIRECTORY_TRAJ"] + agent_name + time_name + ".csv"

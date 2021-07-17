@@ -12,6 +12,7 @@ with pathmagic.context(EXTERNAL_FLAG=True):
     from SimulatorAimsLab import SimulatorAimsLab
     from discrete_path_to_time_traj import discrete_path_to_time_traj, plot_traj
 
+
 class SocketQualisys(object):
     def __init__(self, config_data: dict):
         """
@@ -36,6 +37,20 @@ class SocketQualisys(object):
         # how many numbers the TCP socket is sending
         self.data_number_integer = int(self.config_data[self.mocap_type]["DATA_NUMBERS_STATES_ESTIMATION"])
 
+        # create a UDP socket
+        # IP for publisher
+        HOST_OBS = self.config_data[self.mocap_type]["IP_OBS_POSITION"]
+        # Port for publisher
+        PORT_OBS = int(self.config_data[self.mocap_type]["PORT_OBS_POSITION"])
+        self.server_address_obs = (HOST_OBS, PORT_OBS)
+        # Create a UDP socket
+        self.sock_obs = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock_obs.bind(self.server_address_obs)
+        # maximum bytes received from UDP socket
+        self.data_bytes_max_obs = int(self.config_data[self.mocap_type]["DATA_BYTES_MAX_OBS"])
+        # how many numbers the UDP socket publisher is sending
+        self.data_number_integer_obs = int(self.config_data[self.mocap_type]["DATA_NUMBERS_OBS"])
+
     def update_states_mocap(self):
         """
         Update the positions from motion capture system Qualisys.
@@ -50,6 +65,20 @@ class SocketQualisys(object):
             posi_now = data_one_sample[0:3].tolist()
         return posi_now
 
+    def update_obs_mocap(self):
+        """
+        Update the obstacle positions from motion capture system Qualisys.
+        """
+        msg = self.sock_obs.recv(self.data_bytes_max_obs)
+        if msg:
+            data = np.frombuffer(msg, dtype=float)
+            num_data_group = int(np.size(data)/self.data_number_integer_obs)
+            data_all = data[-self.data_number_integer_obs*num_data_group:]
+            data_one_sample = data[-self.data_number_integer_obs:]
+            # 1D list for position, [px, py, pz], in meters
+            posi_obs = data_one_sample[0:3].tolist()
+        return posi_obs
+
 
 if __name__ == "__main__":
     # load the configuration as a dictionary
@@ -62,8 +91,9 @@ if __name__ == "__main__":
 
     # create a simulator
     MySimulator = SimulatorAimsLab(map_resolution=20)
-    # convert 2D numpy array to 1D list
-    world_map = MySimulator.map_array.flatten().tolist()
+
+    # size of the obstacle in qualisys coordinate [x, y] (meter) with infinite height
+    size_obs_qualisys = [0.1, 0.1]
 
     # # create a TCP/IP socket to subscribe states from mocap Qualisys
     # MySocketQualisys = SocketQualisys(config_data)
@@ -79,13 +109,23 @@ if __name__ == "__main__":
         agent_position_qualisys = [[-1.8, -0.9, height]]  # meter
         # agent_position_qualisys = MySocketQualisys.update_states_mocap()
 
+        # # update the obstacle position
+        # obs_position = MySocketQualisys.update_obs_mocap()
+        # print("obs_position")
+        # print(obs_position)
+        # # update the map
+        # self.update_obs_map(obs_position, size_obs_qualisys)
+
+        # convert 2D numpy array to 1D list
+        world_map = MySimulator.map_array.flatten().tolist()
+
         # update the targets positions
         targets_position_qualisys = [[0.2, -0.4, height], [1.8, 0.9, height]]  # meter
 
         # transform qualisys coordinates (meter) to map array (index)
         t0 = time.time()
-        agent_position_index, targets_position_index = MySimulator.qualisys_to_map_index_all(
-            agent_position_qualisys, targets_position_qualisys)
+        agent_position_index = MySimulator.qualisys_to_map_index_all(agent_position_qualisys)
+        targets_position_index = MySimulator.qualisys_to_map_index_all(targets_position_qualisys)
         t1 = time.time()
         print("Qualisys coordinates to map index. Time used [sec]: " + str(t1 - t0))
 

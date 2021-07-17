@@ -24,8 +24,8 @@ if __name__ == "__main__":
     targets_position_qualisys = [[0.2, -0.4, height], [1.8, 0.9, height]]
     # transform qualisys coordinates (meter) to map array (index)
     t0 = time.time()
-    agent_position_index, targets_position_index = MySimulator.qualisys_to_map_index_all(
-        agent_position_qualisys, targets_position_qualisys)
+    agent_position_index = MySimulator.qualisys_to_map_index_all(agent_position_qualisys)
+    targets_position_index = MySimulator.qualisys_to_map_index_all(targets_position_qualisys)
     t1 = time.time()
     print("Qualisys coordinates to map index. Time used [sec]: " + str(t1 - t0))
 
