@@ -2,6 +2,7 @@
 import os
 import numpy as np
 import json
+import pathmagic
 with pathmagic.context():
     from SplineByPeakSpeed import SplineByPeakSpeed
 

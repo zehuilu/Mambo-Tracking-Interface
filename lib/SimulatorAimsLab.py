@@ -150,5 +150,4 @@ class SimulatorAimsLab(Simulator):
         max_width_index = min(obs_center_index[1]+half_width_index, self.width-1)
 
         # update the map
-        self.map_array[min_height_index : max_height_index+1][:, min_width_index : max_width_index+1] = 
-            self.value_obs * np.ones((max_height_index-min_height_index+1, max_width_index-min_width_index+1))
+        self.map_array[min_height_index : max_height_index+1][:, min_width_index : max_width_index+1] = self.value_obs * np.ones((max_height_index-min_height_index+1, max_width_index-min_width_index+1))

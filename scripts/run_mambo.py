@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import pathmagic
 with pathmagic.context():
     from MamboControllerInterface import MamboControllerInterface
 

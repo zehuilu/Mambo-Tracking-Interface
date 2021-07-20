@@ -21,7 +21,7 @@ if __name__ == "__main__":
     # generate agent and targets manually in qualisys coordinates (meter)
     height = 1.0  # height is fixed during the flight
     agent_position_qualisys = [[-1.8, -0.9, height]]
-    targets_position_qualisys = [[0.2, -0.4, height], [1.8, 0.9, height]]
+    targets_position_qualisys = [[0.2, -0.4, height], [1.8, 0.9, height], [0.5, 0.8, height]]
     # transform qualisys coordinates (meter) to map array (index)
     t0 = time.time()
     agent_position_index = MySimulator.qualisys_to_map_index_all(agent_position_qualisys)

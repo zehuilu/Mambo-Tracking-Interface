@@ -4,6 +4,7 @@ import numpy as np
 import transforms3d
 import time
 import json
+import pathmagic
 with pathmagic.context():
     from owl import Context, Type
 
