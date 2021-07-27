@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 
-def discrete_path_to_time_traj(path: list, dt: float, velocity_ave: float, interp_kind: str, ini_velocity_zero_flag: bool):
+def discrete_path_to_time_traj(path: list, dt: float, velocity_ave: float, interp_kind: str,
+                               velocity_flag=False, ini_velocity_zero_flag=False):
     # if the path is not empty
     if path:
         dimension = len(path[0])
@@ -30,19 +31,26 @@ def discrete_path_to_time_traj(path: list, dt: float, velocity_ave: float, inter
         # each row is a instance of position
         position_traj = f(time_queue_vec)
 
-        # compute the gradient of position as velocity
-        velocity_traj = np.gradient(position_traj, time_queue_vec, axis=0, edge_order=2)
-        # the velocity at start and goal are zeros
-        if ini_velocity_zero_flag:
-            velocity_traj[0] = np.zeros(dimension)
-        velocity_traj[-1] = np.zeros(dimension)
+        if velocity_flag:
+            # compute the gradient of position as velocity
+            velocity_traj = np.gradient(position_traj, time_queue_vec, axis=0, edge_order=2)
+            # the velocity at start and goal are zeros
+            if ini_velocity_zero_flag:
+                velocity_traj[0] = np.zeros(dimension)
+            velocity_traj[-1] = np.zeros(dimension)
+            return time_queue_vec, position_traj, velocity_traj
+        else:
+            return time_queue_vec, position_traj
     else:
         print("This path is empty. The route is infeasible.")
-        time_queue_vec = []
-        position_traj = []
-        velocity_traj = []
+        time_queue_vec = list()
+        position_traj = list()
+        if velocity_flag:
+            velocity_traj = list()
+            return time_queue_vec, position_traj, velocity_traj
+        else:
+            return time_queue_vec, position_traj
 
-    return time_queue_vec, position_traj, velocity_traj
 
 def plot_traj(path: list, time_queue_vec, position_traj, velocity_traj):
     dimension = len(path[0])
@@ -115,7 +123,8 @@ if __name__ == "__main__":
 
     # call discrete_path_to_time_traj to generate trajectories
     time_queue_vec, position_traj, velocity_traj = discrete_path_to_time_traj(
-        path, dt, velocity_ave, interp_kind='linear', ini_velocity_zero_flag=True)
+        path, dt, velocity_ave, interp_kind='linear', velocity_flag=True,
+        ini_velocity_zero_flag=True)
 
     # plot path, and position/velocity trajectories
     plot_traj(path, time_queue_vec, position_traj, velocity_traj)

@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import sys
 import socket
 import time
 import json
@@ -163,7 +164,8 @@ async def main(config_file_name):
 
 
 if __name__ == "__main__":
-    config_file_name = 'config_aimslab.json'
+    config_file_name = sys.path.append(os.path.expanduser("~") +
+        '/Real-time-Task-Allocation-and-Path-Planning/experiment/config_aimslab_ex.json'
     # Run our asynchronous main function forever
     asyncio.ensure_future(main(config_file_name))
     asyncio.get_event_loop().run_forever()
