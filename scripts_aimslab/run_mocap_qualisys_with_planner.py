@@ -39,19 +39,22 @@ def publisher_tcp_main(config_data: dict):
     sock_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     return sock_tcp, server_address_tcp
 
-def publisher_udp_obs(config_data: dict):
+def planner_tcp_main(config_data: dict):
     """
-    Create a UDP socket to publish the positions of an obstacle.
+    Create a TCP/IP socket to publish the agent position to the planner.
+    The following two lines show how to get config_data:
+        json_file = open('mocap_config.json')
+        config_data = json.load(json_file)
     """
     # IP for publisher
-    HOST_OBS = config_data["QUALISYS"]["IP_OBS_POSITION"]
+    HOST_TCP = config_data["QUALISYS"]["IP_STATES_ESTIMATION"]
     # Port for publisher
-    PORT_OBS = int(config_data["QUALISYS"]["PORT_OBS_POSITION"])
+    PORT_TCP = int(config_data["QUALISYS"]["PORT_POSITION_PLANNER"])
 
-    server_address_obs = (HOST_OBS, PORT_OBS)
-    # Create a UDP socket
-    sock_obs = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return sock_obs, server_address_obs
+    planner_address_tcp = (HOST_TCP, PORT_TCP)
+    # Create a TCP/IP socket
+    planner_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    return planner_tcp, planner_address_tcp
 
 async def main(config_file_name):
     """ Main function """
@@ -81,27 +84,29 @@ async def main(config_file_name):
     body_index = create_body_index(xml_string)
     # the one we want to access
     wanted_body = config_data["QUALISYS"]["NAME_SINGLE_BODY"]
-    # the obstacle
-    obs_body = config_data["QUALISYS"]["obs_01"]
 
     # Create a TCP/IP socket for states estimation streaming
     sock_tcp, server_address_tcp = publisher_tcp_main(config_data)
-
-    # Create a UDP socket for streaming the positions of an obstacle
-    sock_obs, server_address_obs = publisher_udp_obs(config_data)
-
     # Bind the socket to the port
     sock_tcp.bind(server_address_tcp)
-    sock_obs.bind(server_address_obs)
+
+    # Create a TCP/IP socket for streaming position to planner
+    planner_tcp, planner_address_tcp = planner_tcp_main(config_data)
+    # Bind the socket to the port
+    planner_tcp.bind(planner_address_tcp)
 
     # Listen for incoming connections
     sock_tcp.listen()
+    planner_tcp.listen()
 
     # Wait for a connection
     print("waiting for a connection")
     print("You can execute src/run_mambo.py now.")
-    connection_tcp, client_address = sock_tcp.accept()
-    print("Built connection with", client_address)
+    print("You can execute the high-level planner now.")
+    # connection_tcp, client_address = sock_tcp.accept()
+    connection_tcp_planner, client_address_planner = planner_tcp.accept()
+    # print("Built connection with", client_address)
+    print("Built connection with", client_address_planner)
 
     def on_packet(packet):
         # Get the 6-DOF data
@@ -112,47 +117,18 @@ async def main(config_file_name):
             t_now = time.time()
             wanted_index = body_index[wanted_body]
             position, rotation = bodies[wanted_index]
-            # You can use position and rotation here. Notice that the unit for position is mm!
-            # print(wanted_body)
 
-            # send 6-DOF data via TCP
+            # send 6-DOF data via TCP/IP
             # concatenate the position and rotation matrix vertically
-            msg = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0) + rotation.matrix + (t_now, ), dtype=float).tostring()
+            # msg_1 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0) + rotation.matrix + (t_now, ), dtype=float).tostring()
+            # connection_tcp.sendall(msg_1)
 
-            # rotation.matrix is a tuple with 9 elements.
-            # rotation_np = np.asarray(rotation.matrix, dtype=float).reshape(3, 3)
-            # quat = transforms3d.quaternions.mat2quat(rotation_np)
-            # data = np.array([position.x/1000.0, position.y/1000.0, position.z/1000.0, quat[0], quat[1], quat[2], quat[3], t_now], dtype=float)
-            # msg = data.tostring()
+            # send position data to the planner via TCP/IP
+            msg_2 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0), dtype=float).tostring()
+            connection_tcp_planner.sendall(msg_2)
 
-            connection_tcp.sendall(msg)
-            # print("6-DOF data sent via TCP!")
-
-            # # for debugging
-            # # remember to import math
-            # print("rotation matrix in array")
-            # print(rotation.matrix)
-            # print("rotation matrix in matrix")
-            # print(rotation_np)
-            # roll_now, pitch_now, yaw_now = transforms3d.euler.quat2euler(quat, axes='sxyz')
-            # print("yaw")
-            # print(math.degrees(yaw_now))
-            # print("pitch")
-            # print(math.degrees(pitch_now))
-            # print("roll")
-            # print(math.degrees(roll_now))
-
-
-        if obs_body is not None and obs_body in body_index:
-            # Extract one specific body
-            obs_index = body_index[obs_body]
-            position, rotation = bodies[obs_index]
-            # print(obs_body)
-
-            # send positions via UDP
-            msg = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0), dtype=float).tostring()
-            sock_obs.sendall(msg, server_address_obs)
-
+            print("position")
+            print([position.x/1000.0, position.y/1000.0, position.z/1000.0])
         else:
             # error
             raise Exception("There is no such a rigid body!")
@@ -164,8 +140,9 @@ async def main(config_file_name):
 
 
 if __name__ == "__main__":
+    # load the configuration as a dictionary
     config_file_name = os.path.expanduser("~") + \
-        '/Real-time-Task-Allocation-and-Path-Planning/experiment/config_aimslab_ex.json'
+        "/Real-time-Task-Allocation-and-Path-Planning/experiment/config_aimslab_ex.json"
     # Run our asynchronous main function forever
     asyncio.ensure_future(main(config_file_name))
     asyncio.get_event_loop().run_forever()
