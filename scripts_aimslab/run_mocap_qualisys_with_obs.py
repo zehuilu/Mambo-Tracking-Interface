@@ -92,7 +92,6 @@ async def main(config_file_name):
 
     # Bind the socket to the port
     sock_tcp.bind(server_address_tcp)
-    sock_obs.bind(server_address_obs)
 
     # Listen for incoming connections
     sock_tcp.listen()
@@ -151,7 +150,7 @@ async def main(config_file_name):
 
             # send positions via UDP
             msg = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0), dtype=float).tostring()
-            sock_obs.sendall(msg, server_address_obs)
+            sock_obs.sendto(msg, server_address_obs)
 
         else:
             # error

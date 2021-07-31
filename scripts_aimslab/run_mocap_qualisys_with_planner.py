@@ -39,9 +39,9 @@ def publisher_tcp_main(config_data: dict):
     sock_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     return sock_tcp, server_address_tcp
 
-def planner_tcp_main(config_data: dict):
+def planner_udp_main(config_data: dict):
     """
-    Create a TCP/IP socket to publish the agent position to the planner.
+    Create a UDP socket to publish the agent position to the planner.
     The following two lines show how to get config_data:
         json_file = open('mocap_config.json')
         config_data = json.load(json_file)
@@ -51,10 +51,10 @@ def planner_tcp_main(config_data: dict):
     # Port for publisher
     PORT_TCP = int(config_data["QUALISYS"]["PORT_POSITION_PLANNER"])
 
-    planner_address_tcp = (HOST_TCP, PORT_TCP)
-    # Create a TCP/IP socket
-    planner_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    return planner_tcp, planner_address_tcp
+    planner_address_udp = (HOST_TCP, PORT_TCP)
+    # Create a UDP socket
+    planner_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    return planner_udp, planner_address_udp
 
 async def main(config_file_name):
     """ Main function """
@@ -75,6 +75,7 @@ async def main(config_file_name):
 
     # Take control of qtm, context manager will automatically release control after scope end
     async with qtm.TakeControl(connection, "password"):
+        # await connection.new()
         pass
 
     # Get 6-DOF settings from QTM
@@ -90,23 +91,21 @@ async def main(config_file_name):
     # Bind the socket to the port
     sock_tcp.bind(server_address_tcp)
 
-    # Create a TCP/IP socket for streaming position to planner
-    planner_tcp, planner_address_tcp = planner_tcp_main(config_data)
-    # Bind the socket to the port
-    planner_tcp.bind(planner_address_tcp)
+    # Create a UDP socket for streaming position to planner
+    planner_udp, planner_address_udp = planner_udp_main(config_data)
 
+    ########## comment this line for debugging
     # Listen for incoming connections
-    sock_tcp.listen()
-    planner_tcp.listen()
+    # sock_tcp.listen()
 
     # Wait for a connection
     print("waiting for a connection")
     print("You can execute src/run_mambo.py now.")
     print("You can execute the high-level planner now.")
+
+    ########## comment this line for debugging
     # connection_tcp, client_address = sock_tcp.accept()
-    connection_tcp_planner, client_address_planner = planner_tcp.accept()
     # print("Built connection with", client_address)
-    print("Built connection with", client_address_planner)
 
     def on_packet(packet):
         # Get the 6-DOF data
@@ -118,14 +117,15 @@ async def main(config_file_name):
             wanted_index = body_index[wanted_body]
             position, rotation = bodies[wanted_index]
 
+            ########## comment this line for debugging
             # send 6-DOF data via TCP/IP
             # concatenate the position and rotation matrix vertically
             # msg_1 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0) + rotation.matrix + (t_now, ), dtype=float).tostring()
             # connection_tcp.sendall(msg_1)
 
-            # send position data to the planner via TCP/IP
+            # send position data to the planner via UDP
             msg_2 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0), dtype=float).tostring()
-            connection_tcp_planner.sendall(msg_2)
+            planner_udp.sendto(msg_2, planner_address_udp)
 
             print("position")
             print([position.x/1000.0, position.y/1000.0, position.z/1000.0])
