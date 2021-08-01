@@ -16,7 +16,7 @@ import csv_helper
 from interpolate_traj import interpolate_traj
 
 
-class MamboControllerInterface(object):
+class MamboControllerInterface:
     mocap_type: str
     flag_tuning_LLC: bool
     yaw_des: float

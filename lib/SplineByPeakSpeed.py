@@ -2,7 +2,7 @@
 import numpy as np
 import scipy.ndimage as nd
 
-class SplineByPeakSpeed(object):
+class SplineByPeakSpeed:
     def __init__(self, p_0, v_0, a_0, v_peak, t_peak, t_total, dt):
         # all numpy array, make sure float
         self.p_0 = p_0.astype(float) # 3*1

@@ -1,15 +1,18 @@
 #!/usr/bin/python3
 import os
+import asyncio
 import socket
 import time
 import json
 import time
 import numpy as np
 import transforms3d
-import asyncio
 import xml.etree.ElementTree as ET
 import pkg_resources
 import qtm
+import pathmagic
+with pathmagic.context():
+    from UdpProtocol import UdpProtocol
 
 
 def create_body_index(xml_string):
@@ -39,7 +42,7 @@ def publisher_tcp_main(config_data: dict):
     sock_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     return sock_tcp, server_address_tcp
 
-def planner_udp_main(config_data: dict):
+async def planner_udp_main(config_data: dict):
     """
     Create a UDP socket to publish the agent position to the planner.
     The following two lines show how to get config_data:
@@ -47,14 +50,34 @@ def planner_udp_main(config_data: dict):
         config_data = json.load(json_file)
     """
     # IP for publisher
-    HOST_TCP = config_data["QUALISYS"]["IP_STATES_ESTIMATION"]
+    HOST = config_data["QUALISYS"]["IP_STATES_ESTIMATION"]
     # Port for publisher
-    PORT_TCP = int(config_data["QUALISYS"]["PORT_POSITION_PLANNER"])
+    PORT = int(config_data["QUALISYS"]["PORT_POSITION_PLANNER"])
+    planner_address_udp = (HOST, PORT)
 
-    planner_address_udp = (HOST_TCP, PORT_TCP)
-    # Create a UDP socket
-    planner_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return planner_udp, planner_address_udp
+    # Create a UDP socket for data streaming
+    loop = asyncio.get_running_loop()
+    transport_planner, protocol_planner = await loop.create_datagram_endpoint(
+        UdpProtocol, local_addr=None, remote_addr=planner_address_udp)
+    return transport_planner, planner_address_udp
+
+async def obs_udp_main(config_data: dict):
+    """
+    Create a UDP socket to publish the obstacle position to the planner.
+    The following two lines show how to get config_data:
+        json_file = open('mocap_config.json')
+        config_data = json.load(json_file)
+    """
+    # IP for obstacle states publisher
+    HOST_OBS = config_data["QUALISYS"]["IP_OBS_POSITION"]
+    # Port for obstacle states publisher
+    PORT_OBS = int(config_data["QUALISYS"]["PORT_OBS_POSITION"])
+    server_address_obs = (HOST_OBS, PORT_OBS)
+    # create a UDP streaming protocol for subscribing obstacles states
+    loop_obs = asyncio.get_running_loop()
+    transport_obs, protocol_obs = await loop_obs.create_datagram_endpoint(
+        UdpProtocol, local_addr=server_address_obs, remote_addr=None)
+    return transport_obs, server_address_obs
 
 async def main(config_file_name):
     """ Main function """
@@ -92,7 +115,12 @@ async def main(config_file_name):
     sock_tcp.bind(server_address_tcp)
 
     # Create a UDP socket for streaming position to planner
-    planner_udp, planner_address_udp = planner_udp_main(config_data)
+    transport_planner, planner_address_udp = await planner_udp_main(config_data)
+
+    # Create a UDP socket for streaming obstacle position to planner
+    # transport_obs, server_address_obs = await obs_udp_main(config_data)
+    # define the obstacle body name
+    # obs_body = config_data["QUALISYS"]["obs_01"]
 
     ########## comment this line for debugging
     # Listen for incoming connections
@@ -125,10 +153,21 @@ async def main(config_file_name):
 
             # send position data to the planner via UDP
             msg_2 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0), dtype=float).tostring()
-            planner_udp.sendto(msg_2, planner_address_udp)
+            transport_planner.sendto(msg_2, planner_address_udp)
 
             print("position")
             print([position.x/1000.0, position.y/1000.0, position.z/1000.0])
+
+        # if obs_body is not None and obs_body in body_index:
+        #     # Extract one specific body
+        #     obs_index = body_index[obs_body]
+        #     position, rotation = bodies[obs_index]
+        #     # print(obs_body)
+
+        #     # send obstacle positions to the planner via UDP
+        #     msg_3 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0), dtype=float).tostring()
+        #     transport_obs.sendto(msg_3, server_address_obs)
+
         else:
             # error
             raise Exception("There is no such a rigid body!")
