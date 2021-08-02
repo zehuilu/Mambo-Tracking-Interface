@@ -72,7 +72,7 @@ class MamboControllerInterface:
         json_file = open(config_file_name)
         self.config_data = json.load(json_file)
         self.mocap_type = mocap_string
-        self.flag_tuning_LLC = bool(self.config_data["FLAG_TUNING_LLC"])
+        self.flag_tuning_LLC = bool(int(self.config_data["FLAG_TUNING_LLC"]))
         if not ((self.mocap_type == "PHASESPACE") or (self.mocap_type == "QUALISYS")):
             raise Exception("Please specify the supported motion capture system!")
 
@@ -137,7 +137,7 @@ class MamboControllerInterface:
         self.angle_and_cmd_plot = np.array([[0.0], [0.0]])
         self.csv_length_now = 1
         self.csv_length_pre = -1
-        self.t_stop = 100.0  # initialize as a large enough number
+        self.t_stop = 200.0  # initialize as a large enough number
 
         # load gains for PID controller
         self.set_PID_gains()
@@ -145,6 +145,7 @@ class MamboControllerInterface:
         # if flag==0, remove all the current file under this directory
         if not self.flag_tuning_LLC:
             csv_helper.remove_traj_ref_lib(self.directory_delete)
+            print("CSV files in " + self.directory_delete + " are deleted")
 
     def run_controller(self):
         """
@@ -161,7 +162,7 @@ class MamboControllerInterface:
             self.mambo.fly_direct(0, 0, 0, 0, 0.5)
 
             # Remember to change the total time!
-            while self.t_now < self.t_stop:
+            while self.t_now < self.t_stop + 2:
                 t0 = time.time()
 
                 # update the states from mocap system
@@ -217,7 +218,7 @@ class MamboControllerInterface:
             print("The battery percentage is ", battery_after)
             print("The used battery percentage is", self.battery_ini - battery_after)
             # plot
-            if bool(self.config_data["FLAG_PLOT"]):
+            if bool(int(self.config_data["FLAG_PLOT"])):
                 self.visuaslize_result(traj_ref, T)
 
     def update_states_mocap(self):

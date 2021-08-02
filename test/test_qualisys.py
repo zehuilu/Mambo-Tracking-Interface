@@ -73,7 +73,7 @@ async def main(config_file_name):
 
             # send 6-DOF data via TCP
             # concatenate the position and rotation matrix vertically
-            # msg = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0) + rotation.matrix, dtype=float).tostring()
+            # msg = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0) + rotation.matrix, dtype=float).tobytes()
 
             quat = transforms3d.quaternions.mat2quat(rotation_np)
             # print("quat")

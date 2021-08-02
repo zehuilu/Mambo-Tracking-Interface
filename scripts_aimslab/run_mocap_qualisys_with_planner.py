@@ -148,15 +148,15 @@ async def main(config_file_name):
             ########## comment this line for debugging
             # send 6-DOF data via TCP/IP
             # concatenate the position and rotation matrix vertically
-            # msg_1 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0) + rotation.matrix + (t_now, ), dtype=float).tostring()
+            # msg_1 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0) + rotation.matrix + (t_now, ), dtype=float).tobytes()
             # connection_tcp.sendall(msg_1)
 
             # send position data to the planner via UDP
-            msg_2 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0), dtype=float).tostring()
+            msg_2 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0), dtype=float).tobytes()
             transport_planner.sendto(msg_2, planner_address_udp)
 
-            print("position")
-            print([position.x/1000.0, position.y/1000.0, position.z/1000.0])
+            # print("position")
+            # print([position.x/1000.0, position.y/1000.0, position.z/1000.0])
 
         # if obs_body is not None and obs_body in body_index:
         #     # Extract one specific body
@@ -165,7 +165,7 @@ async def main(config_file_name):
         #     # print(obs_body)
 
         #     # send obstacle positions to the planner via UDP
-        #     msg_3 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0), dtype=float).tostring()
+        #     msg_3 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0), dtype=float).tobytes()
         #     transport_obs.sendto(msg_3, server_address_obs)
 
         else:

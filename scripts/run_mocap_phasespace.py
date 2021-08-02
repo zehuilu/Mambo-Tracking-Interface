@@ -80,7 +80,7 @@ def main_phasespace(config_file_name):
                     # mm to m
                     data = np.array([px, py, pz, r.pose[3], r.pose[4], r.pose[5], r.pose[6], t_now], dtype=float)
 
-                    msg = data.tostring()
+                    msg = data.tobytes()
                     print("sending message to the client")
                     print(data)
                     connection.sendall(msg)

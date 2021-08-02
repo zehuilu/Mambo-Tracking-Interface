@@ -21,8 +21,7 @@ def discrete_path_to_time_traj(path: list, dt: float, velocity_ave: float, inter
 
         # generate a queue time trajectory, the time interval is dt
         t_end = round(time_vec[-1] - time_vec[-1] % dt, 2)
-        time_queue_vec = np.arange(time_vec[0], t_end, dt).tolist()
-        time_queue_vec.append(round(time_vec[-1], 2))
+        time_queue_vec = np.append(np.arange(time_vec[0], t_end, dt), round(time_vec[-1], 2))
 
         boundary = (path[0], path[-1])
         f = interpolate.interp1d(time_vec, path, kind=interp_kind,
