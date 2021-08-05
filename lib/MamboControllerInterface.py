@@ -175,8 +175,8 @@ class MamboControllerInterface:
                 self.sock_matlab.sendto(msg, self.server_address_matlab)
 
                 traj_ref, T, self.hover_flag, self.csv_length_now = csv_helper.update_csv(self.directory_traj)
-                if not self.hover_flag:
-                    if ((self.hover_flag == False) and (self.hover_flag_pre == True)):
+                if (not self.hover_flag) and self.csv_length_now:
+                    if (self.hover_flag == False) and (self.hover_flag_pre == True):
                         t_start = t0
                         self.idx_iter = 0
                     self.t_now = t0 - t_start
@@ -196,7 +196,7 @@ class MamboControllerInterface:
                     # mambo.smart_sleep(self.dt_traj)
                     self.mambo.fly_direct(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, self.dt_traj)
                 else:
-                    print("Haven't generated trajectories as csv file.ArithmeticError")
+                    print("Haven't generated trajectories as csv file.")
                     print("You can run planner to generate trajectories")
                     self.mambo.fly_direct(0.0, 0.0, 0.0, 0.0, self.dt_traj)
 

@@ -86,15 +86,18 @@ def update_csv(Directory):
         hover_flag = True
         traj_ref = np.zeros((6, 2), dtype=float)
         T = np.array([0.0, 1.0], dtype=float)
+        csv_length_now = np.shape(traj_ref)[1]
     else:
         try:
             traj_ref, T = import_csv(csv_file_list[-1])
+            csv_length_now = np.shape(traj_ref)[1]
         except:
-            traj_ref, T = import_csv(csv_file_list[-2])
+            traj_ref = list()
+            T = list()
+            csv_length_now = 0
             print("The lastest one is empty!!!")
         hover_flag = False
 
-    csv_length_now = np.shape(traj_ref)[1]
     return traj_ref, T, hover_flag, csv_length_now
 
 
