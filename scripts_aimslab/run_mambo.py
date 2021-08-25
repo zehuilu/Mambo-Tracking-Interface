@@ -7,8 +7,15 @@ with pathmagic.context():
 
 if __name__ == "__main__":
     # load the configuration as a dictionary
+
+    # # for Real-time-Task-Allocation-and-Path-Planning
+    # config_file_name = os.path.expanduser("~") + \
+    #     "/Real-time-Task-Allocation-and-Path-Planning/experiment/config_aimslab_ex.json"
+
+    # for learning from directional correction
     config_file_name = os.path.expanduser("~") + \
-        "/Real-time-Task-Allocation-and-Path-Planning/experiment/config_aimslab_ex.json"
+        "/Learning-from-Directional-Corrections/experiments/config_aimslab.json"
+
     mocap_string = "QUALISYS"
 
     Controller = MamboControllerInterface(config_file_name, mocap_string)

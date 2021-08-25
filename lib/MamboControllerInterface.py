@@ -19,6 +19,7 @@ from interpolate_traj import interpolate_traj
 class MamboControllerInterface:
     mocap_type: str
     flag_tuning_LLC: bool
+    RTD_streaming_flag: bool
     yaw_des: float
     flag_mambo_connection: bool
     server_address_states: tuple
@@ -95,11 +96,16 @@ class MamboControllerInterface:
         # how many numbers the TCP socket is sending
         self.data_number_integer = int(self.config_data[self.mocap_type]["DATA_NUMBERS_STATES_ESTIMATION"])
 
-        # Sending real-time positions and velocities to MATLAB via UDP
-        # Connect the socket to the port where the server is listening
-        self.server_address_matlab = (self.config_data["RTD_MATLAB"]["IP_MATLAB"], int(self.config_data["RTD_MATLAB"]["PORT_MATLAB"]))
-        # Create a UDP socket
-        self.sock_matlab = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            # Sending real-time positions and velocities to MATLAB via UDP
+            # Connect the socket to the port where the server is listening
+            self.server_address_matlab = (self.config_data["RTD_MATLAB"]["IP_MATLAB"], int(self.config_data["RTD_MATLAB"]["PORT_MATLAB"]))
+            # Create a UDP socket
+            self.sock_matlab = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.RTD_streaming_flag = True
+        except:
+            print("No configurations for RTD.")
+            self.RTD_streaming_flag = False
 
         # define the path for system id and csv trajectories
         self.directory_sysid = os.getcwd() + self.config_data["DIRECTORY_SYSID"]
@@ -168,11 +174,13 @@ class MamboControllerInterface:
                 # update the states from mocap system
                 data_for_csv = self.update_states_mocap()
 
-                # send positions and velocities to MATLAB via UDP
-                msg = struct.pack('dddddd', self.posi_now[0,0], self.posi_now[1,0], self.posi_now[2,0], self.velo_now[0,0], self.velo_now[1,0], self.velo_now[2,0])
-                #data_test = struct.unpack('dddddd', msg)
-                # print("sending message to matlab")
-                self.sock_matlab.sendto(msg, self.server_address_matlab)
+                # send positions and velocities to MATLAB RTD planner via UDP
+                if self.RTD_streaming_flag:
+                    msg = struct.pack('dddddd', self.posi_now[0,0], self.posi_now[1,0], self.posi_now[2,0],
+                                      self.velo_now[0,0], self.velo_now[1,0], self.velo_now[2,0])
+                    #data_test = struct.unpack('dddddd', msg)
+                    # print("sending message to matlab")
+                    self.sock_matlab.sendto(msg, self.server_address_matlab)
 
                 traj_ref, T, self.hover_flag, self.csv_length_now = csv_helper.update_csv(self.directory_traj)
                 if (not self.hover_flag) and self.csv_length_now:
