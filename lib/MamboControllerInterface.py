@@ -161,14 +161,14 @@ class MamboControllerInterface:
             print("Mambo connection failed!")
         else:
             # calibrate the Mambo
-            self.calibrate_mambo(60)
+            self.calibrate_mambo(battery_lb=60)
 
-            self.mambo.safe_takeoff(5)
+            self.mambo.safe_takeoff(2)
             print("Taking off!")
             self.mambo.fly_direct(0, 0, 0, 0, 0.5)
 
             # Remember to change the total time!
-            while self.t_now < self.t_stop + 2:
+            while self.t_now < self.t_stop + 0.55:
                 t0 = time.time()
 
                 # update the states from mocap system
@@ -217,7 +217,7 @@ class MamboControllerInterface:
             # after the iterations(trajectory) completes
             self.mambo.fly_direct(0, 0, 0, 0, 1.0)
             print("Landing")
-            self.mambo.safe_land(5)
+            self.mambo.safe_land(2)
             print("Disconnect")
             self.mambo.disconnect()
             # save csv file
