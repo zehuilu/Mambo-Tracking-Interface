@@ -42,7 +42,7 @@ def import_csv(FileName):
         FileName: A string for the absoluate file path
 
     Returns:
-        traj_ref: A 2D Numpy array, each column stands for the position and velocity at a timestamp
+        traj_ref: A 2D Numpy array, each column stands for the position (px, py, pz) and velocity (vx, vy, vz) at a timestamp
         T: A 1D Numpy array, the time trajectory
 
     Usage:

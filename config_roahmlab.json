@@ -48,7 +48,7 @@
         "DATA_NUMBERS_MATLAB": "6"
     },
 
-    "FLAG_TUNING_LLC": 0,
+    "FLAG_DELETE_CSV_BEGIN": 0,
     "FLAG_PLOT": 1,
     "DIRECTORY_SYSID": "/sysid_data/",
     "DIRECTORY_TRAJ": "/traj_csv_files/"

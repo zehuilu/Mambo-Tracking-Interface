@@ -18,7 +18,7 @@ from interpolate_traj import interpolate_traj
 
 class MamboControllerInterface:
     mocap_type: str
-    flag_tuning_LLC: bool
+    flag_delete_csv_begin: bool
     RTD_streaming_flag: bool
     yaw_des: float
     flag_mambo_connection: bool
@@ -48,6 +48,8 @@ class MamboControllerInterface:
     csv_length_now: int
     csv_length_pre: int
     t_stop: float
+
+    # tracking controller parameters
     fwdfeedheight: float
     Kp_height: float
     Ki_height: float
@@ -73,9 +75,12 @@ class MamboControllerInterface:
         json_file = open(config_file_name)
         self.config_data = json.load(json_file)
         self.mocap_type = mocap_string
-        self.flag_tuning_LLC = bool(int(self.config_data["FLAG_TUNING_LLC"]))
         if not ((self.mocap_type == "PHASESPACE") or (self.mocap_type == "QUALISYS")):
             raise Exception("Please specify the supported motion capture system!")
+
+        # if flag_delete_csv_begin is false, don't remove csv files when initializing Mambo
+        # otherwise, remove all the csv files when initializing Mambo
+        self.flag_delete_csv_begin = bool(int(self.config_data["FLAG_DELETE_CSV_BEGIN"]))
 
         # desired yaw angle, if fly backward, choose pi; otherwise, choose 0.0, in radians
         self.yaw_des = float(self.config_data["LOW_LEVEL_CONTROLLER"]["YAW_DES"])
@@ -147,9 +152,7 @@ class MamboControllerInterface:
 
         # load gains for PID controller
         self.set_PID_gains()
-        # if flag==1, don't remove current csv files for tuning LLC
-        # if flag==0, remove all the current file under this directory
-        if not self.flag_tuning_LLC:
+        if not self.flag_delete_csv_begin:
             csv_helper.remove_traj_ref_lib(self.directory_delete)
             print("CSV files in " + self.directory_delete + " are deleted")
 
