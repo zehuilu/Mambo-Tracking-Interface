@@ -2,12 +2,13 @@
 
 This is a trajectory tracking interface for Parrot [Mambo](https://www.parrot.com/us/drones/parrot-mambo-fpv) Quadrotor via [pyparrot](https://github.com/amymcgovern/pyparrot). By default, **Mambo-Tracking-Interface** is able to obtain state estimation from motion capture systems [PhaseSpace](https://www.phasespace.com/) or [Qualisys](https://www.qualisys.com/), and you're welcome to write functions for your own motion capture system. The purpose of this repository is that prople can foucs on motion planning / path planning / trajectory planning and **Mambo-Tracking-Interface** can take over actual trajectory tracking as long as your planner outputs trajectories as csv files in a specific directory.
 
-* **Mambo-Tracking-Interface** has built-in support for a motion planner called RTD, [Reachability-based Trajectory Design](https://asmedigitalcollection.asme.org/DSCC/proceedings/DSCC2019/59162/V003T19A010/1070634). Usage is shown below.
+* **Mambo-Tracking-Interface** has built-in support for a motion planner called RTD, [Reachability-based Trajectory Design](https://asmedigitalcollection.asme.org/DSCC/proceedings/DSCC2019/59162/V003T19A010/1070634). Usage is shown below. A video of **Mambo-Tracking-Interface** wit RTD is shown [here](https://www.youtube.com/watch?v=1cldHVQK3Yw), starting at 1'32''.
+
 
 # Dependencies
 
 This repo has been tested with:
-* Ubuntu 18.04.4 LTS, Python 3.6.9.
+* Ubuntu 18.04.4 LTS, Python 3.6.9
 * Ubuntu 20.04.3 LTS, Python 3.8.10
 * macOS 11.4, Python 3.9.6
 
