@@ -166,7 +166,7 @@ class MamboControllerInterface:
             # calibrate the Mambo
             self.calibrate_mambo(battery_lb=60)
 
-            self.mambo.safe_takeoff(2)
+            self.mambo.safe_takeoff(5)
             print("Taking off!")
             self.mambo.fly_direct(0, 0, 0, 0, 0.5)
 
@@ -220,7 +220,7 @@ class MamboControllerInterface:
             # after the iterations(trajectory) completes
             self.mambo.fly_direct(0, 0, 0, 0, 1.0)
             print("Landing")
-            self.mambo.safe_land(2)
+            self.mambo.safe_land(5)
             print("Disconnect")
             self.mambo.disconnect()
             # save csv file
