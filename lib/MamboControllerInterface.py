@@ -152,7 +152,7 @@ class MamboControllerInterface:
 
         # load gains for PID controller
         self.set_PID_gains()
-        if not self.flag_delete_csv_begin:
+        if self.flag_delete_csv_begin:
             csv_helper.remove_traj_ref_lib(self.directory_delete)
             print("CSV files in " + self.directory_delete + " are deleted")
 

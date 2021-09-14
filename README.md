@@ -66,7 +66,7 @@ In some cases, a function call like time.sleep(), matplotlib.pyplot.pause(), or 
 A customized UDP protocol is [`lib/UdpProtocol.py`](https://github.com/zehuilu/Mambo-Tracking-Interface/blob/master/lib/UdpProtocol.py). To run the motion capture system with this customized UDP protocol,
 ```
 $ cd <MAIN_DIRECTORY>
-$ python3 scripts_aimslab/run_mocap_qualisys_with_planner.py
+$ python3 scripts_aimslab/run_mocap_qualisys_for_planner.py
 ```
 
 
