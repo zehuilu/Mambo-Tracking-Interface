@@ -110,6 +110,8 @@ async def main(config_file_name):
     # the one we want to access
     wanted_body = config_data["QUALISYS"]["NAME_SINGLE_BODY"]
 
+    print("Rigid body is " + wanted_body)
+
     # Create a TCP/IP socket for states estimation streaming
     sock_tcp, server_address_tcp = publisher_tcp_main(config_data)
     # Bind the socket to the port
@@ -182,7 +184,7 @@ async def main(config_file_name):
 if __name__ == "__main__":
     # load mambo index from command line arguments
     if len(sys.argv) == 2:
-        mambo_idx = sys.argv[0]
+        mambo_idx = sys.argv[1]
     else:
         mambo_idx = 1
 

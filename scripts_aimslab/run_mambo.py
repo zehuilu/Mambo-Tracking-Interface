@@ -9,7 +9,7 @@ with pathmagic.context():
 if __name__ == "__main__":
     # load mambo index from command line arguments
     if len(sys.argv) == 2:
-        mambo_idx = sys.argv[0]
+        mambo_idx = sys.argv[1]
     else:
         mambo_idx = 1
 
