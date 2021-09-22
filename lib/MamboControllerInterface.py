@@ -108,8 +108,8 @@ class MamboControllerInterface:
             # Create a UDP socket
             self.sock_matlab = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.RTD_streaming_flag = True
+            print("RTD configuration received")
         except:
-            print("No configurations for RTD.")
             self.RTD_streaming_flag = False
 
         # define the path for system id and csv trajectories
@@ -170,8 +170,8 @@ class MamboControllerInterface:
             print("Taking off!")
             self.mambo.fly_direct(0, 0, 0, 0, 0.5)
 
-            # Remember to change the total time!
-            while self.t_now < self.t_stop + 0.55:
+            # add extra a few seconds for waiting new trajectories
+            while self.t_now < self.t_stop + 3.0:
                 t0 = time.time()
 
                 # update the states from mocap system

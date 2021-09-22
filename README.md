@@ -121,12 +121,34 @@ python3 scripts/run_mambo.py
 Follow step 1 and 2 of this section. After you see the reminder in Mambo controller, run quadrotor_RTD planner via MATLAB.
 
 
+# How to tune the controller
+1. Set `FLAG_DELETE_CSV_BEGIN` as 0 in `configuration.json` such that the Mambo controller won't delete existing trajectories when it's initialized.
+```
+"FLAG_DELETE_CSV_BEGIN": 0
+```
+
+2. Generate a trajectory by running [scripts/generate_traj_for_tuning.py](https://github.com/zehuilu/Mambo-Tracking-Interface/blob/master/scripts/generate_traj_for_tuning.py). You can pick different parameters to generate different trajectories.
+```
+$ python3 scripts/generate_traj_for_tuning.py
+```
+
+3. Run the motion capture system and the Mambo controller
+```
+cd <MAIN_DIRECTORY>
+python3 scripts/run_mocap_qualisys.py
+```
+
+```
+cd <MAIN_DIRECTORY>
+python3 scripts/run_mambo.py
+```
+
+4. Observe data visualizations of desired and actual trajectory, revise controller parameters in `configuration.json` and execute the trajectory again.
+
+
 # Others
 Feel free to post your questions in [Issues](https://github.com/zehuilu/Mambo-Tracking-Interface/issues) or [Discussions](https://github.com/zehuilu/Mambo-Tracking-Interface/discussions). **Mambo-Tracking-Interface** is still under my maintenance as of August 27, 2021.
 
 
 I will add a section to explain configuration files (json files) soon. (edited in August 27, 2021)
 
-
-# How to tune the controller
-To-do (edited in August 27, 2021)

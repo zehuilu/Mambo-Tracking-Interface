@@ -8,14 +8,18 @@ with pathmagic.context():
 
 
 if __name__ == "__main__":
+    # initial condition
     p_0 = np.array([[-1.8], [-0.9], [0.6]])
     # p_0 = np.array([[0.0], [-0.9], [0.6]])
     v_0 = np.array([[0.0], [0.0], [0.0]])
     a_0 = np.array([[0.0], [0.0], [0.0]])
+
+    # the velocity with maximum magnitude
     v_peak = np.array([[0.6], [0.3], [0.0]])
+    # timestamp when the magnitude of velocity is maximum
     t_peak = 3.0
-    t_total = 6.0
-    dt = 0.1
+    t_total = 6.0  # total time
+    dt = 0.1  # time step
 
     # initialize the class
     spline_class = SplineByPeakSpeed(p_0, v_0, a_0, v_peak, t_peak, t_total, dt)
