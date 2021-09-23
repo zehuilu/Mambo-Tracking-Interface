@@ -5,6 +5,10 @@ This is a trajectory tracking interface for Parrot [Mambo](https://www.parrot.co
 * **Mambo-Tracking-Interface** has built-in support for a motion planner called RTD, [Reachability-based Trajectory Design](https://asmedigitalcollection.asme.org/DSCC/proceedings/DSCC2019/59162/V003T19A010/1070634). Usage is shown below. A video of **Mambo-Tracking-Interface** wit RTD is shown [here](https://www.youtube.com/watch?v=1cldHVQK3Yw), starting at 1'32''.
 
 
+# Note (By Sept. 23, 2021)
+I've been testing multiple Mambo, the acceptable latest firmware is v 3.0.25. The latest firmware v 3.0.26 is NOT working with [pyparrot](https://github.com/amymcgovern/pyparrot) sometimes. I recommend not to update your Mambo firmware if you want to use either [pyparrot](https://github.com/amymcgovern/pyparrot) or **Mambo-Tracking-Interface**.
+
+
 # Dependencies
 
 This repo has been tested with:
