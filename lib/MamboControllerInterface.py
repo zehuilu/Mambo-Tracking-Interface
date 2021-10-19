@@ -171,7 +171,14 @@ class MamboControllerInterface:
             self.mambo.fly_direct(0, 0, 0, 0, 0.5)
 
             # add extra a few seconds for waiting new trajectories
-            while self.t_now < self.t_stop + 3.0:
+            if self.flag_delete_csv_begin:
+                # if delete the existing csv before it starts, wait longer
+                time_extra = 3.0
+            else:
+                # if not delete the existing csv, wait shorter
+                time_extra = 0.0
+
+            while self.t_now < self.t_stop + time_extra:
                 t0 = time.time()
 
                 # update the states from mocap system
@@ -199,6 +206,9 @@ class MamboControllerInterface:
                     # 2-D numpy array, 6 by 1, px, py, pz, vx, vy, vz
                     point_ref = interpolate_traj(self.t_now + self.dt_traj + self.t_look_ahead, T, traj_ref, 'traj')
                     roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd = self.PID_controller(point_ref)
+
+                    print("vz_cmd: ", vz_cmd)
+
                     # record
                     self.record_sysid(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, t0, data_for_csv)
                     # p, v, yaw, pitch, roll, yaw, pitch, roll, vz
