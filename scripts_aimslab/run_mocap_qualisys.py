@@ -144,7 +144,8 @@ if __name__ == "__main__":
 
     # for Real-time-Task-Allocation-and-Path-Planning
     config_file_name = os.path.expanduser("~") + \
-        "/Real-time-Task-Allocation-and-Path-Planning/experiment/config_aimslab_ex_" + str(mambo_idx) + ".json"
+        "/DrMaMP-Distributed-Real-time-Multi-agent-Mission-Planning-Algorithm/experiment/config_aimslab_ex_" + \
+            str(mambo_idx) + ".json"
 
     # # for learning from directional correction
     # config_file_name = os.path.expanduser("~") + \

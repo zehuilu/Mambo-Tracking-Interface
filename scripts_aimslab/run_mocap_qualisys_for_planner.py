@@ -190,7 +190,8 @@ if __name__ == "__main__":
 
     # load the configuration as a dictionary
     config_file_name = os.path.expanduser("~") + \
-        "/Real-time-Task-Allocation-and-Path-Planning/experiment/config_aimslab_ex_" + str(mambo_idx) + ".json"
+        "/DrMaMP-Distributed-Real-time-Multi-agent-Mission-Planning-Algorithm/experiment/config_aimslab_ex_" + \
+        str(mambo_idx) + ".json"
 
     # Run our asynchronous main function forever
     asyncio.ensure_future(main(config_file_name))
