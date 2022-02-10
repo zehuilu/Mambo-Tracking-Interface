@@ -77,7 +77,7 @@ async def obs_udp_main(config_data: dict):
     # create a UDP streaming protocol for subscribing obstacles states
     loop_obs = asyncio.get_running_loop()
     transport_obs, protocol_obs = await loop_obs.create_datagram_endpoint(
-        UdpProtocol, local_addr=server_address_obs, remote_addr=None)
+        UdpProtocol, local_addr=None, remote_addr=server_address_obs)
     return transport_obs, server_address_obs
 
 async def main(config_file_name):
@@ -120,10 +120,13 @@ async def main(config_file_name):
     # Create a UDP socket for streaming position to planner
     transport_planner, planner_address_udp = await planner_udp_main(config_data)
 
-    # Create a UDP socket for streaming obstacle position to planner
-    # transport_obs, server_address_obs = await obs_udp_main(config_data)
-    # define the obstacle body name
-    # obs_body = config_data["QUALISYS"]["obs_01"]
+    obs_body = None
+    if "NAME_OBSTACLE" in config_data["QUALISYS"].keys():
+        # Create a UDP socket for streaming obstacle position to planner
+        transport_obs, server_address_obs = await obs_udp_main(config_data)
+        # define the obstacle body name
+        obs_body = config_data["QUALISYS"]["NAME_OBSTACLE"]
+        print("Obstacle is: ", obs_body)
 
     ########## comment this line for debugging
     # Listen for incoming connections
@@ -160,20 +163,18 @@ async def main(config_file_name):
 
             # print("position")
             # print([position.x/1000.0, position.y/1000.0, position.z/1000.0])
-
-        # if obs_body is not None and obs_body in body_index:
-        #     # Extract one specific body
-        #     obs_index = body_index[obs_body]
-        #     position, rotation = bodies[obs_index]
-        #     # print(obs_body)
-
-        #     # send obstacle positions to the planner via UDP
-        #     msg_3 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0), dtype=float).tobytes()
-        #     transport_obs.sendto(msg_3, server_address_obs)
-
         else:
-            # error
             raise Exception("There is no such a rigid body!")
+
+        if obs_body is not None and obs_body in body_index:
+            # Extract one specific body
+            obs_index = body_index[obs_body]
+            position, rotation = bodies[obs_index]
+            # print(obs_body)
+
+            # send obstacle positions to the planner via UDP
+            msg_3 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0), dtype=float).tobytes()
+            transport_obs.sendto(msg_3, server_address_obs)
 
     # Start streaming frames
     # Make sure the component matches with the data fetch function, for example: packet.get_6d() with "6d"
