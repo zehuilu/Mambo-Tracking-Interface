@@ -176,6 +176,8 @@ async def main(config_file_name):
             msg_3 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0), dtype=float).tobytes()
             transport_obs.sendto(msg_3, server_address_obs)
 
+            # print(obs_body + " position: ", [round(position.x/1000.0,2), round(position.y/1000.0,2), round(position.z/1000.0,2)])
+
     # Start streaming frames
     # Make sure the component matches with the data fetch function, for example: packet.get_6d() with "6d"
     # Reference: https://qualisys.github.io/qualisys_python_sdk/index.html

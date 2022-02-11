@@ -207,8 +207,6 @@ class MamboControllerInterface:
                     point_ref = interpolate_traj(self.t_now + self.dt_traj + self.t_look_ahead, T, traj_ref, 'traj')
                     roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd = self.PID_controller(point_ref)
 
-                    print("vz_cmd: ", vz_cmd)
-
                     # record
                     self.record_sysid(roll_cmd, pitch_cmd, yaw_rate_cmd, vz_cmd, t0, data_for_csv)
                     # p, v, yaw, pitch, roll, yaw, pitch, roll, vz
