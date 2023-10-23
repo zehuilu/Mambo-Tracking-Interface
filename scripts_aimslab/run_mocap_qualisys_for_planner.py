@@ -15,7 +15,6 @@ import pathmagic
 with pathmagic.context():
     from UdpProtocol import UdpProtocol
 
-
 def create_body_index(xml_string):
     """
     Extract a name to index dictionary from 6-DOF settings xml
@@ -80,7 +79,7 @@ async def obs_udp_main(config_data: dict):
         UdpProtocol, local_addr=None, remote_addr=server_address_obs)
     return transport_obs, server_address_obs
 
-async def main(config_file_name):
+async def main(config_file_name, debug_mode):
     """ Main function """
     # Read the configuration from the json file
     json_file = open(config_file_name)
@@ -128,18 +127,18 @@ async def main(config_file_name):
         obs_body = config_data["QUALISYS"]["NAME_OBSTACLE"]
         print("Obstacle is: ", obs_body)
 
-    ########## comment this line for debugging
     # Listen for incoming connections
-    # sock_tcp.listen()
+    if not debug_mode:
+        sock_tcp.listen()
 
     # Wait for a connection
     print("waiting for a connection")
     print("You can execute src/run_mambo.py now.")
     print("You can execute the high-level planner now.")
 
-    ########## comment this line for debugging
-    # connection_tcp, client_address = sock_tcp.accept()
-    # print("Built connection with", client_address)
+    if not debug_mode:
+        connection_tcp, client_address = sock_tcp.accept()
+        print("Built connection with", client_address)
 
     def on_packet(packet):
         # Get the 6-DOF data
@@ -151,11 +150,11 @@ async def main(config_file_name):
             wanted_index = body_index[wanted_body]
             position, rotation = bodies[wanted_index]
 
-            ########## comment this line for debugging
+            if not debug_mode:
             # send 6-DOF data via TCP/IP
             # concatenate the position and rotation matrix vertically
-            # msg_1 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0) + rotation.matrix + (t_now, ), dtype=float).tobytes()
-            # connection_tcp.sendall(msg_1)
+                msg_1 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0) + rotation.matrix + (t_now, ), dtype=float).tobytes()
+                connection_tcp.sendall(msg_1)
 
             # send position data to the planner via UDP
             msg_2 = np.asarray((position.x/1000.0, position.y/1000.0, position.z/1000.0), dtype=float).tobytes()
@@ -185,6 +184,11 @@ async def main(config_file_name):
 
 
 if __name__ == "__main__":
+    ### Debug mode ###
+    # True: run planner without flying Mambo
+    # False: fly mambo
+    debug_mode = False
+
     # load mambo index from command line arguments
     if len(sys.argv) == 2:
         mambo_idx = sys.argv[1]
@@ -197,5 +201,5 @@ if __name__ == "__main__":
         str(mambo_idx) + ".json"
 
     # Run our asynchronous main function forever
-    asyncio.ensure_future(main(config_file_name))
+    asyncio.ensure_future(main(config_file_name, debug_mode))
     asyncio.get_event_loop().run_forever()
